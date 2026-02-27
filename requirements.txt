@@ -1,32 +1,22 @@
 # VaaniSeva - Python Dependencies
 # AI for Bharat Hackathon 2026
 
-# Core Framework
-python>=3.9
+# AWS SDK
+boto3>=1.34.0
+botocore>=1.34.0
 
-# AWS SDK and Services
-boto3>=1.28.0
-botocore>=1.31.0
-aws-lambda-powertools>=2.20.0
+# Twilio - Telephony
+twilio>=9.0.0
 
-# Twilio - Telephony Services
-twilio>=8.10.0
+# HTTP
+requests>=2.31.0
 
-# AI and LLM
-anthropic>=0.25.0
+# Local dev
+python-dotenv>=1.0.0
 
-# Speech Processing
-deepgram-sdk>=3.0.0
-amazon-polly>=1.0.0
-
-# Audio Processing
-pydub>=0.25.1
-wave>=0.0.2
-pyaudio>=0.2.13
-
-# Indian Language Support
-indic-transliteration>=2.3.0
-bhashini-api>=1.0.0  # Custom/Internal API client
+# Document processing (for knowledge-updater Lambda)
+PyPDF2>=3.0.0
+beautifulsoup4>=4.12.0
 
 # HTTP and API
 requests>=2.31.0
