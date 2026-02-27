@@ -1,33 +1,36 @@
 # VaaniSeva - Lambda: call-handler
-# Handles all incoming Twilio voice calls
-# Flow: Incoming call → language select → STT → RAG → LLM → TTS → respond
+# TTS: Sarvam AI (primary, better Hindi) → Amazon Polly via Twilio builtin (fallback)
+# STT: Twilio native Gather speech recognition (free, built-in)
+# LLM: Amazon Bedrock Claude 3.5 Sonnet + RAG
 
 import json
 import os
+import base64
+import math
+import uuid
+import logging
 import boto3
 import requests
 from twilio.twiml.voice_response import VoiceResponse, Gather
 from datetime import datetime
-import uuid
-import logging
 
 logger = logging.getLogger()
 logger.setLevel(os.environ.get("LOG_LEVEL", "INFO"))
 
 # ── AWS clients ──────────────────────────────────────────────
-dynamodb = boto3.resource("dynamodb", region_name=os.environ["AWS_REGION"])
-bedrock  = boto3.client("bedrock-runtime", region_name=os.environ["AWS_REGION"])
-polly    = boto3.client("polly", region_name=os.environ["AWS_REGION"])
+dynamodb  = boto3.resource("dynamodb", region_name=os.environ["AWS_REGION"])
+bedrock   = boto3.client("bedrock-runtime", region_name=os.environ["AWS_REGION"])
+s3_client = boto3.client("s3", region_name=os.environ["AWS_REGION"])
 
 calls_table     = dynamodb.Table(os.environ["DYNAMODB_CALLS_TABLE"])
 knowledge_table = dynamodb.Table(os.environ["DYNAMODB_KNOWLEDGE_TABLE"])
 vectors_table   = dynamodb.Table(os.environ["DYNAMODB_VECTORS_TABLE"])
 
 # ── Config ───────────────────────────────────────────────────
-BEDROCK_MODEL_ID          = os.environ["BEDROCK_MODEL_ID"]
+BEDROCK_MODEL_ID           = os.environ["BEDROCK_MODEL_ID"]
 BEDROCK_EMBEDDING_MODEL_ID = os.environ["BEDROCK_EMBEDDING_MODEL_ID"]
-BHASHINI_USER_ID          = os.environ.get("BHASHINI_USER_ID", "")
-BHASHINI_API_KEY          = os.environ.get("BHASHINI_API_KEY", "")
+SARVAM_API_KEY             = os.environ.get("SARVAM_API_KEY", "")
+S3_BUCKET                  = os.environ["S3_DOCUMENTS_BUCKET"]
 
 SYSTEM_PROMPT = """You are VaaniSeva, an AI assistant helping rural Indians access government scheme information via phone.
 
@@ -35,10 +38,62 @@ RULES:
 - Respond in the user's language (Hindi or English)
 - Use simple, everyday words — no jargon
 - Keep answers to 2-3 short sentences max (this is a phone call)
-- Only answer about these 5 schemes: PM-Kisan, Ayushman Bharat, MGNREGA, PM Awas Yojana, Sukanya Samriddhi Yojana
-- If asked something else, politely say you only know about government schemes
+- Only answer about: PM-Kisan, Ayushman Bharat, MGNREGA, PM Awas Yojana, Sukanya Samriddhi Yojana
+- If asked something else, say you only know about government schemes
 - Never say the word "Claude"
-- End every answer by asking if they want to know more"""
+- End with: do you want to know more?"""
+
+
+# ══════════════════════════════════════════════════════════════
+#  TTS: Sarvam AI → Amazon Polly fallback
+# ══════════════════════════════════════════════════════════════
+
+def sarvam_tts(text: str, language: str) -> str | None:
+    """
+    Call Sarvam AI TTS. Uploads audio to S3, returns presigned URL (1hr).
+    Returns None on any failure so caller can fall back to Polly.
+    """
+    if not SARVAM_API_KEY:
+        return None
+    try:
+        payload = {
+            "inputs": [text],
+            "target_language_code": "hi-IN" if language == "hi" else "en-IN",
+            "speaker": "anushka" if language == "hi" else "vidya",
+            "model": "bulbul:v2"
+        }
+        resp = requests.post(
+            "https://api.sarvam.ai/text-to-speech",
+            json=payload,
+            headers={"api-subscription-key": SARVAM_API_KEY},
+            timeout=8
+        )
+        resp.raise_for_status()
+        audio_bytes = base64.b64decode(resp.json()["audios"][0])
+        key = f"tts/{uuid.uuid4()}.wav"
+        s3_client.put_object(Bucket=S3_BUCKET, Key=key, Body=audio_bytes, ContentType="audio/wav")
+        url = s3_client.generate_presigned_url(
+            "get_object", Params={"Bucket": S3_BUCKET, "Key": key}, ExpiresIn=3600
+        )
+        logger.info(f"Sarvam TTS OK → {key}")
+        return url
+    except Exception as e:
+        logger.warning(f"Sarvam TTS failed, falling back to Polly: {e}")
+        return None
+
+
+def tts_say(target, text: str, language: str):
+    """
+    Add TTS audio to a TwiML Gather or Response object.
+    Tries Sarvam AI first; falls back to Amazon Polly via Twilio builtin <Say>.
+    """
+    audio_url = sarvam_tts(text, language)
+    if audio_url:
+        target.play(audio_url)   # Sarvam audio from S3
+    else:
+        voice = "Polly.Aditi" if language == "hi" else "Polly.Raveena"
+        target.say(text, voice=voice)  # Polly via Twilio — zero extra config
+
 
 # ── Main Lambda handler ──────────────────────────────────────
 def lambda_handler(event, context):
@@ -107,14 +162,17 @@ def handle_language_select(params):
         ExpressionAttributeValues={":lang": language}
     )
 
-    response = VoiceResponse()
-    if language == "hi":
-        prompt_text = "Aap kaunsi sarkari yojana ke baare mein jaanna chahte hain? Boliye."
-        voice = "Polly.Aditi"
-    else:
-        prompt_text = "Which government scheme would you like to know about? Please speak after the beep."
-        voice = "Polly.Raveena"
+    prompt = (
+        "Aap kaunsi sarkari yojana ke baare mein jaanna chahte hain? Boliye."
+        if language == "hi"
+        else "Which government scheme would you like to know about? Please speak."
+    )
+    fallback_msg = (
+        "Kuch sun nahi aaya. Phir se call karein."
+        if language == "hi" else "I didn't hear anything. Please call again."
+    )
 
+    response = VoiceResponse()
     gather = Gather(
         input="speech",
         action=f"/voice/gather?lang={language}",
@@ -123,10 +181,9 @@ def handle_language_select(params):
         speech_timeout="auto",
         timeout=10
     )
-    gather.say(prompt_text, voice=voice)
+    tts_say(gather, prompt, language)
     response.append(gather)
-    response.say("I did not hear anything. Please call again.", voice=voice)
-
+    tts_say(response, fallback_msg, language)
     return twiml_response(response)
 
 
@@ -141,21 +198,24 @@ def handle_gather(params):
     if not speech_text:
         return ask_again(language)
 
-    # RAG → LLM pipeline
     try:
-        answer = rag_pipeline(speech_text, language, call_sid)
+        answer = rag_pipeline(speech_text, language)
     except Exception as e:
-        logger.error(f"RAG pipeline error: {e}")
+        logger.error(f"RAG error: {e}")
         answer = (
             "Mujhe abhi kuch takleef ho rahi hai. Thodi der baad try karein."
             if language == "hi"
             else "I'm having trouble right now. Please try again in a moment."
         )
 
-    voice = "Polly.Aditi" if language == "hi" else "Polly.Raveena"
-    response = VoiceResponse()
+    follow_up = (
+        "Kya aap aur kuch jaanna chahte hain?"
+        if language == "hi" else "Would you like to know anything else?"
+    )
+    goodbye = "Dhanyavaad. VaaniSeva mein call karne ke liye shukriya." if language == "hi" \
+              else "Thank you for calling VaaniSeva. Goodbye."
 
-    # Speak the answer
+    response = VoiceResponse()
     gather = Gather(
         input="speech",
         action=f"/voice/gather?lang={language}",
@@ -164,32 +224,19 @@ def handle_gather(params):
         speech_timeout="auto",
         timeout=15
     )
-    gather.say(answer, voice=voice)
+    tts_say(gather, f"{answer} {follow_up}", language)
     response.append(gather)
+    tts_say(response, goodbye, language)
 
-    # If no follow-up, say goodbye
-    goodbye = "Dhanyavaad. VaaniSeva call karne ke liye shukriya." if language == "hi" \
-              else "Thank you for calling VaaniSeva. Goodbye."
-    response.say(goodbye, voice=voice)
-
-    # Log query to DynamoDB
     log_query(call_sid, speech_text, answer, language)
-
     return twiml_response(response)
 
 
 # ── RAG Pipeline ─────────────────────────────────────────────
-def rag_pipeline(query: str, language: str, call_sid: str) -> str:
-    # 1. Generate embedding for the query
+def rag_pipeline(query: str, language: str) -> str:
     embedding = get_embedding(query)
-
-    # 2. Find relevant scheme info from DynamoDB
-    context = retrieve_context(embedding, language)
-
-    # 3. Ask Claude via Bedrock
-    answer = ask_claude(query, context, language)
-
-    return answer
+    context   = retrieve_context(embedding, language)
+    return ask_claude(query, context, language)
 
 
 def get_embedding(text: str) -> list:
@@ -203,33 +250,26 @@ def get_embedding(text: str) -> list:
     return result["embedding"]
 
 
+def cosine_similarity(a: list, b: list) -> float:
+    dot   = sum(x * y for x, y in zip(a, b))
+    mag_a = math.sqrt(sum(x * x for x in a))
+    mag_b = math.sqrt(sum(x * x for x in b))
+    return dot / (mag_a * mag_b + 1e-9)
+
+
 def retrieve_context(query_embedding: list, language: str) -> str:
-    """Simple cosine similarity search against vaaniseva-vectors table."""
-    import math
-
-    def cosine_similarity(a, b):
-        dot = sum(x * y for x, y in zip(a, b))
-        mag_a = math.sqrt(sum(x * x for x in a))
-        mag_b = math.sqrt(sum(x * x for x in b))
-        return dot / (mag_a * mag_b + 1e-9)
-
-    # Scan vectors table (small dataset for hackathon — acceptable)
+    """Cosine similarity search against vaaniseva-vectors table (scan OK for small dataset)."""
     items = vectors_table.scan().get("Items", [])
     if not items:
         return "No scheme information loaded yet."
 
-    scored = []
-    for item in items:
-        stored_embedding = item.get("embedding", [])
-        if stored_embedding:
-            score = cosine_similarity(query_embedding, stored_embedding)
-            scored.append((score, item))
-
-    # Top 3 matches
-    top = sorted(scored, key=lambda x: x[0], reverse=True)[:3]
+    scored = [
+        (cosine_similarity(query_embedding, item.get("embedding", [])), item)
+        for item in items if item.get("embedding")
+    ]
+    top      = sorted(scored, key=lambda x: x[0], reverse=True)[:3]
     lang_key = "hi" if language == "hi" else "en"
-    context_parts = [item.get(f"text_{lang_key}", item.get("text", "")) for _, item in top]
-    return "\n\n".join(context_parts)
+    return "\n\n".join(item.get(f"text_{lang_key}", item.get("text", "")) for _, item in top)
 
 
 def ask_claude(query: str, context: str, language: str) -> str:
@@ -268,7 +308,6 @@ Answer in 2-3 short sentences suitable for a phone call."""
 
 # ── Helpers ──────────────────────────────────────────────────
 def ask_again(language: str):
-    voice = "Polly.Aditi" if language == "hi" else "Polly.Raveena"
     response = VoiceResponse()
     gather = Gather(
         input="speech",
@@ -278,8 +317,8 @@ def ask_again(language: str):
         speech_timeout="auto",
         timeout=10
     )
-    msg = "Kripya dobara boliye." if language == "hi" else "Sorry, I didn't catch that. Please say it again."
-    gather.say(msg, voice=voice)
+    msg = "Kripya dobara boliye." if language == "hi" else "Sorry, please say that again."
+    tts_say(gather, msg, language)
     response.append(gather)
     return twiml_response(response)
 
