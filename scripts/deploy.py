@@ -227,6 +227,22 @@ def update_twilio_webhook(base_url):
         print(f"  ! Could not find Twilio number {target}. Update webhook manually to: {base_url}/voice/incoming")
 
 
+def add_connect_permission(lambda_arn):
+    """Allow Amazon Connect to invoke the Lambda function."""
+    print("Adding Amazon Connect permission...")
+    try:
+        lambda_client.add_permission(
+            FunctionName=LAMBDA_NAME,
+            StatementId="amazon-connect-invoke",
+            Action="lambda:InvokeFunction",
+            Principal="connect.amazonaws.com",
+            SourceAccount=ACCOUNT_ID,
+        )
+        print("  ✓ Connect invoke permission added")
+    except lambda_client.exceptions.ResourceConflictException:
+        print("  ✓ Connect permission already exists")
+
+
 def main():
     print("=" * 50)
     print("VaaniSeva Deployment")
@@ -237,6 +253,7 @@ def main():
     lambda_arn = deploy_lambda(zip_path, role_arn)
     base_url   = create_api_gateway(lambda_arn)
     update_twilio_webhook(base_url)
+    add_connect_permission(lambda_arn)
 
     print("\n" + "=" * 50)
     print("DEPLOYMENT COMPLETE")

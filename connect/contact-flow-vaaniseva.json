@@ -1,0 +1,248 @@
+{
+  "Version": "2019-10-30",
+  "StartAction": "start",
+  "Metadata": {
+    "entryPointPosition": { "x": 20, "y": 20 },
+    "ActionMetadata": {
+      "start":           { "position": { "x": 20,  "y": 20  } },
+      "setLogging":      { "position": { "x": 200, "y": 20  } },
+      "initLambda":      { "position": { "x": 400, "y": 20  } },
+      "welcomePrompt":   { "position": { "x": 600, "y": 20  } },
+      "getLangDigit":    { "position": { "x": 800, "y": 20  } },
+      "langLambdaHi":    { "position": { "x": 1000, "y": -80 } },
+      "langLambdaEn":    { "position": { "x": 1000, "y": 120 } },
+      "setLangAttrHi":   { "position": { "x": 1200, "y": -80 } },
+      "setLangAttrEn":   { "position": { "x": 1200, "y": 120 } },
+      "askQuestionPrompt": { "position": { "x": 1400, "y": 20 } },
+      "getSpeech":       { "position": { "x": 1600, "y": 20  } },
+      "queryLambda":     { "position": { "x": 1800, "y": 20  } },
+      "speakAnswer":     { "position": { "x": 2000, "y": 20  } },
+      "goodbyePrompt":   { "position": { "x": 2200, "y": 20  } },
+      "noInputPrompt":   { "position": { "x": 1200, "y": 300 } },
+      "disconnect":      { "position": { "x": 2400, "y": 20  } }
+    }
+  },
+  "Actions": [
+    {
+      "Identifier": "start",
+      "Type": "Trigger",
+      "Parameters": {},
+      "Transitions": {
+        "NextAction": "setLogging"
+      }
+    },
+    {
+      "Identifier": "setLogging",
+      "Type": "UpdateContactFlowLoggingBehavior",
+      "Parameters": { "LoggingBehavior": "Enable" },
+      "Transitions": {
+        "NextAction": "initLambda"
+      }
+    },
+    {
+      "Identifier": "initLambda",
+      "Type": "InvokeLambdaFunction",
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-east-1:809567033505:function:vaaniseva-call-handler",
+        "InvocationTimeLimitSeconds": "8",
+        "LambdaInvocationAttributes": {
+          "action": "init"
+        }
+      },
+      "Transitions": {
+        "NextAction": "welcomePrompt",
+        "Errors": [
+          { "NextAction": "welcomePrompt", "ErrorType": "NoMatchingError" }
+        ]
+      }
+    },
+    {
+      "Identifier": "welcomePrompt",
+      "Type": "MessageParticipant",
+      "Parameters": {
+        "Text": "वाणीसेवा में आपका स्वागत है। हिंदी के लिए एक दबाएं। Welcome to VaaniSeva. For English, press 2.",
+        "TextToSpeechType": "ssml",
+        "SSML": "<speak><prosody rate='90%'><lang xml:lang='hi-IN'>वाणीसेवा में आपका स्वागत है। हिंदी के लिए एक दबाएं।</lang> <break time='500ms'/> Welcome to VaaniSeva. For English, press 2.</prosody></speak>"
+      },
+      "Transitions": {
+        "NextAction": "getLangDigit"
+      }
+    },
+    {
+      "Identifier": "getLangDigit",
+      "Type": "GetParticipantInput",
+      "Parameters": {
+        "InputTimeLimitSeconds": "10",
+        "DTMFInputParameters": {
+          "InputTerminationSequence": "#",
+          "MaxDigits": 1
+        },
+        "Prompt": {
+          "Type": "Text",
+          "Value": ""
+        }
+      },
+      "Transitions": {
+        "NextAction": "noInputPrompt",
+        "Conditions": [
+          { "NextAction": "langLambdaHi", "Condition": { "Operator": "Equals", "Operands": ["1"] } },
+          { "NextAction": "langLambdaEn", "Condition": { "Operator": "Equals", "Operands": ["2"] } }
+        ],
+        "Errors": [
+          { "NextAction": "noInputPrompt", "ErrorType": "InputTimeLimitExceeded" },
+          { "NextAction": "noInputPrompt", "ErrorType": "NoMatchingCondition" },
+          { "NextAction": "noInputPrompt", "ErrorType": "NoMatchingError" }
+        ]
+      }
+    },
+    {
+      "Identifier": "langLambdaHi",
+      "Type": "InvokeLambdaFunction",
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-east-1:809567033505:function:vaaniseva-call-handler",
+        "InvocationTimeLimitSeconds": "8",
+        "LambdaInvocationAttributes": {
+          "action": "set_language",
+          "digit": "1"
+        }
+      },
+      "Transitions": {
+        "NextAction": "setLangAttrHi",
+        "Errors": [
+          { "NextAction": "setLangAttrHi", "ErrorType": "NoMatchingError" }
+        ]
+      }
+    },
+    {
+      "Identifier": "langLambdaEn",
+      "Type": "InvokeLambdaFunction",
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-east-1:809567033505:function:vaaniseva-call-handler",
+        "InvocationTimeLimitSeconds": "8",
+        "LambdaInvocationAttributes": {
+          "action": "set_language",
+          "digit": "2"
+        }
+      },
+      "Transitions": {
+        "NextAction": "setLangAttrEn",
+        "Errors": [
+          { "NextAction": "setLangAttrEn", "ErrorType": "NoMatchingError" }
+        ]
+      }
+    },
+    {
+      "Identifier": "setLangAttrHi",
+      "Type": "UpdateContactAttributes",
+      "Parameters": {
+        "Attributes": {
+          "language": "hi"
+        }
+      },
+      "Transitions": {
+        "NextAction": "askQuestionPrompt"
+      }
+    },
+    {
+      "Identifier": "setLangAttrEn",
+      "Type": "UpdateContactAttributes",
+      "Parameters": {
+        "Attributes": {
+          "language": "en"
+        }
+      },
+      "Transitions": {
+        "NextAction": "askQuestionPrompt"
+      }
+    },
+    {
+      "Identifier": "askQuestionPrompt",
+      "Type": "MessageParticipant",
+      "Parameters": {
+        "Text": "$.External.prompt"
+      },
+      "Transitions": {
+        "NextAction": "getSpeech"
+      }
+    },
+    {
+      "Identifier": "getSpeech",
+      "Type": "GetParticipantInput",
+      "Parameters": {
+        "InputTimeLimitSeconds": "15",
+        "LexV2Bot": {
+          "AliasArn": "REPLACE_WITH_LEX_BOT_ALIAS_ARN"
+        },
+        "Prompt": {
+          "Type": "Text",
+          "Value": ""
+        }
+      },
+      "Transitions": {
+        "NextAction": "queryLambda",
+        "Conditions": [
+          { "NextAction": "queryLambda", "Condition": { "Operator": "Equals", "Operands": ["FallbackIntent"] } }
+        ],
+        "Errors": [
+          { "NextAction": "goodbyePrompt", "ErrorType": "InputTimeLimitExceeded" },
+          { "NextAction": "queryLambda",   "ErrorType": "NoMatchingCondition" },
+          { "NextAction": "goodbyePrompt", "ErrorType": "NoMatchingError" }
+        ]
+      }
+    },
+    {
+      "Identifier": "queryLambda",
+      "Type": "InvokeLambdaFunction",
+      "Parameters": {
+        "LambdaFunctionARN": "arn:aws:lambda:us-east-1:809567033505:function:vaaniseva-call-handler",
+        "InvocationTimeLimitSeconds": "15",
+        "LambdaInvocationAttributes": {
+          "action": "query",
+          "speech_text": "$.Lex.V2.SessionState.SessionAttributes.utterance"
+        }
+      },
+      "Transitions": {
+        "NextAction": "speakAnswer",
+        "Errors": [
+          { "NextAction": "goodbyePrompt", "ErrorType": "NoMatchingError" }
+        ]
+      }
+    },
+    {
+      "Identifier": "speakAnswer",
+      "Type": "MessageParticipant",
+      "Parameters": {
+        "Text": "$.External.answer"
+      },
+      "Transitions": {
+        "NextAction": "getSpeech"
+      }
+    },
+    {
+      "Identifier": "noInputPrompt",
+      "Type": "MessageParticipant",
+      "Parameters": {
+        "Text": "कोई इनपुट नहीं मिला। कृपया दोबारा कॉल करें। No input received. Please call again."
+      },
+      "Transitions": {
+        "NextAction": "disconnect"
+      }
+    },
+    {
+      "Identifier": "goodbyePrompt",
+      "Type": "MessageParticipant",
+      "Parameters": {
+        "Text": "धन्यवाद। वाणीसेवा में कॉल करने के लिए शुक्रिया। Thank you for calling VaaniSeva. Goodbye."
+      },
+      "Transitions": {
+        "NextAction": "disconnect"
+      }
+    },
+    {
+      "Identifier": "disconnect",
+      "Type": "DisconnectParticipant",
+      "Parameters": {},
+      "Transitions": {}
+    }
+  ]
+}

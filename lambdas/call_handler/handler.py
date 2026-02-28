@@ -101,6 +101,12 @@ def lambda_handler(event, context):
     global BASE_URL
     logger.info(f"Event: {json.dumps(event)}")
 
+    # ── Amazon Connect event? (has "Details" key) ────────────
+    if "Details" in event:
+        from connect_handler import handle_connect_event
+        return handle_connect_event(event)
+
+    # ── Otherwise: Twilio via API Gateway ────────────────────
     # API Gateway wraps the body as a string
     body = event.get("body", "")
     if isinstance(body, str):
