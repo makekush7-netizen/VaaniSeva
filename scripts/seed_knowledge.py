@@ -6,6 +6,7 @@ import boto3
 import json
 import os
 import math
+from decimal import Decimal
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -253,7 +254,7 @@ def seed():
                 continue
 
             print(f"    Generating embedding for {scheme['scheme_id']} ({lang})...")
-            embedding = get_embedding(text)
+            embedding = [Decimal(str(v)) for v in get_embedding(text)]
 
             vectors_table.put_item(Item={
                 "embedding_id": f"{scheme['scheme_id']}#{lang}",

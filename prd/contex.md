@@ -15,18 +15,7 @@
 
 ### **The Story So Far:**
 
-**February 15, 2026, 10:00 PM:**
-- Friends called about AI for Bharat Hackathon
-- Deadline: Midnight (2 hours away)
-- They had a generic health app idea (ArogyaSathi)
-- We pivoted to VaaniSeva (phone-based voice AI)
-- Created PPT in 90 minutes using AI assistance
-- Submitted at 11:59 PM
-
-**February 25, 2026:**
-- **SELECTED** for Prototype Development Phase
-- Team is in shortlisted teams document
-- Now have 4 days to build working prototype
+*
 
 **Current Situation:**
 - 4 team members available

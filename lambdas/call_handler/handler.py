@@ -1,7 +1,7 @@
 # VaaniSeva - Lambda: call-handler
 # TTS: Sarvam AI (primary, better Hindi) → Amazon Polly via Twilio builtin (fallback)
 # STT: Twilio native Gather speech recognition (free, built-in)
-# LLM: Amazon Bedrock Claude 3.5 Sonnet + RAG
+# LLM: Amazon Bedrock Nova Micro (Amazon native, no card required) + RAG
 
 import json
 import os
@@ -31,17 +31,18 @@ BEDROCK_MODEL_ID           = os.environ["BEDROCK_MODEL_ID"]
 BEDROCK_EMBEDDING_MODEL_ID = os.environ["BEDROCK_EMBEDDING_MODEL_ID"]
 SARVAM_API_KEY             = os.environ.get("SARVAM_API_KEY", "")
 S3_BUCKET                  = os.environ["S3_DOCUMENTS_BUCKET"]
+BASE_URL                   = ""  # Set at runtime from API Gateway event
 
-SYSTEM_PROMPT = """You are VaaniSeva, an AI assistant helping rural Indians access government scheme information via phone.
+SYSTEM_PROMPT = """You are VaaniSeva (वाणीसेवा), an AI phone assistant helping rural Indians learn about government schemes.
 
 RULES:
-- Respond in the user's language (Hindi or English)
-- Use simple, everyday words — no jargon
-- Keep answers to 2-3 short sentences max (this is a phone call)
-- Only answer about: PM-Kisan, Ayushman Bharat, MGNREGA, PM Awas Yojana, Sukanya Samriddhi Yojana
-- If asked something else, say you only know about government schemes
-- Never say the word "Claude"
-- End with: do you want to know more?"""
+- When the user speaks Hindi, you MUST reply in pure Devanagari Hindi (हिंदी). NEVER use romanized/Hinglish like "aap" or "yojana". Always write आप, योजना, etc.
+- When the user speaks English, reply in simple English.
+- Use simple, everyday words a villager would understand — no jargon.
+- Keep answers to 2-3 short sentences max (this is a phone call, not an essay).
+- You know about: PM-Kisan, Ayushman Bharat, MGNREGA, PM Awas Yojana, Sukanya Samriddhi, PM Mudra, PM Fasal Bima, Atal Pension, PM SVANidhi, Beti Bachao, Janani Suraksha, PM Garib Kalyan Anna, Jan Dhan, PM Ujjwala, National Scholarship Portal.
+- If asked about something else, say you only know about government schemes.
+- End with asking if they want to know more."""
 
 
 # ══════════════════════════════════════════════════════════════
@@ -97,6 +98,7 @@ def tts_say(target, text: str, language: str):
 
 # ── Main Lambda handler ──────────────────────────────────────
 def lambda_handler(event, context):
+    global BASE_URL
     logger.info(f"Event: {json.dumps(event)}")
 
     # API Gateway wraps the body as a string
@@ -107,14 +109,20 @@ def lambda_handler(event, context):
     else:
         params = body or {}
 
+    # Build absolute base URL so Twilio follows redirects through API Gateway stage
+    req_ctx = event.get("requestContext", {})
+    domain = req_ctx.get("domainName", "")
+    stage  = req_ctx.get("stage", "prod")
+    BASE_URL = f"https://{domain}/{stage}" if domain else ""
+
     path = event.get("path", "/voice/incoming")
 
     if "/incoming" in path:
         return handle_incoming(params)
-    elif "/gather" in path:
-        return handle_gather(params)
     elif "/language" in path:
         return handle_language_select(params)
+    elif "/gather" in path:
+        return handle_gather(params)
     else:
         return twiml_response(VoiceResponse())
 
@@ -136,14 +144,25 @@ def handle_incoming(params):
     })
 
     response = VoiceResponse()
-    gather = Gather(num_digits=1, action="/voice/language", method="POST", timeout=10)
-    gather.say(
-        "Welcome to VaaniSeva. For Hindi, press 1. For English, press 2. "
-        "VaaniSeva mein aapka swagat hai. Hindi ke liye 1 dabayein. English ke liye 2 dabayein.",
-        voice="Polly.Raveena"
+    action_url = f"{BASE_URL}/voice/language" if BASE_URL else "/voice/language"
+    gather = Gather(num_digits=1, action=action_url, method="POST", timeout=10)
+
+    # Pre-recorded Sarvam TTS welcome audio from S3
+    welcome_url = s3_client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": S3_BUCKET, "Key": "static-audio/welcome_combined.wav"},
+        ExpiresIn=3600,
     )
+    gather.play(welcome_url)
     response.append(gather)
-    response.say("We did not receive your input. Please call again.", voice="Polly.Raveena")
+
+    # Pre-recorded Sarvam TTS no-input fallback from S3
+    no_input_url = s3_client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": S3_BUCKET, "Key": "static-audio/no_input.wav"},
+        ExpiresIn=3600,
+    )
+    response.play(no_input_url)
 
     return twiml_response(response)
 
@@ -163,19 +182,20 @@ def handle_language_select(params):
     )
 
     prompt = (
-        "Aap kaunsi sarkari yojana ke baare mein jaanna chahte hain? Boliye."
+        "आप कौनसी सरकारी योजना के बारे में जानना चाहते हैं? बोलिए।"
         if language == "hi"
         else "Which government scheme would you like to know about? Please speak."
     )
     fallback_msg = (
-        "Kuch sun nahi aaya. Phir se call karein."
+        "कुछ सुनाई नहीं दिया। कृपया दोबारा कॉल करें।"
         if language == "hi" else "I didn't hear anything. Please call again."
     )
 
     response = VoiceResponse()
+    gather_url = f"{BASE_URL}/voice/gather?lang={language}" if BASE_URL else f"/voice/gather?lang={language}"
     gather = Gather(
         input="speech",
-        action=f"/voice/gather?lang={language}",
+        action=gather_url,
         method="POST",
         language="hi-IN" if language == "hi" else "en-IN",
         speech_timeout="auto",
@@ -203,22 +223,22 @@ def handle_gather(params):
     except Exception as e:
         logger.error(f"RAG error: {e}")
         answer = (
-            "Mujhe abhi kuch takleef ho rahi hai. Thodi der baad try karein."
+            "मुझे अभी कुछ तकलीफ हो रही है। थोड़ी देर बाद कोशिश करें।"
             if language == "hi"
             else "I'm having trouble right now. Please try again in a moment."
         )
 
     follow_up = (
-        "Kya aap aur kuch jaanna chahte hain?"
+        "क्या आप और कुछ जानना चाहते हैं?"
         if language == "hi" else "Would you like to know anything else?"
     )
-    goodbye = "Dhanyavaad. VaaniSeva mein call karne ke liye shukriya." if language == "hi" \
+    goodbye = "धन्यवाद। वाणीसेवा में कॉल करने के लिए शुक्रिया।" if language == "hi" \
               else "Thank you for calling VaaniSeva. Goodbye."
 
     response = VoiceResponse()
     gather = Gather(
         input="speech",
-        action=f"/voice/gather?lang={language}",
+        action=f"{BASE_URL}/voice/gather?lang={language}" if BASE_URL else f"/voice/gather?lang={language}",
         method="POST",
         language="hi-IN" if language == "hi" else "en-IN",
         speech_timeout="auto",
@@ -236,7 +256,7 @@ def handle_gather(params):
 def rag_pipeline(query: str, language: str) -> str:
     embedding = get_embedding(query)
     context   = retrieve_context(embedding, language)
-    return ask_claude(query, context, language)
+    return ask_llm(query, context, language)
 
 
 def get_embedding(text: str) -> list:
@@ -251,6 +271,9 @@ def get_embedding(text: str) -> list:
 
 
 def cosine_similarity(a: list, b: list) -> float:
+    # Convert Decimal to float (DynamoDB stores as Decimal)
+    a = [float(x) for x in a]
+    b = [float(x) for x in b]
     dot   = sum(x * y for x, y in zip(a, b))
     mag_a = math.sqrt(sum(x * x for x in a))
     mag_b = math.sqrt(sum(x * x for x in b))
@@ -272,13 +295,10 @@ def retrieve_context(query_embedding: list, language: str) -> str:
     return "\n\n".join(item.get(f"text_{lang_key}", item.get("text", "")) for _, item in top)
 
 
-def ask_claude(query: str, context: str, language: str) -> str:
-    lang_instruction = "Respond in Hindi." if language == "hi" else "Respond in English."
+def ask_llm(query: str, context: str, language: str) -> str:
+    lang_instruction = "जवाब पूरी तरह हिंदी देवनागरी लिपि में दो। कोई भी अंग्रेजी या रोमन अक्षर मत लिखो।" if language == "hi" else "Respond in simple English."
 
-    messages = [
-        {
-            "role": "user",
-            "content": f"""{lang_instruction}
+    user_msg = f"""{lang_instruction}
 
 Context from government scheme database:
 {context}
@@ -286,24 +306,26 @@ Context from government scheme database:
 User's question: {query}
 
 Answer in 2-3 short sentences suitable for a phone call."""
-        }
+
+    messages = [
+        {"role": "user", "content": [{"text": f"{SYSTEM_PROMPT}\n\n{user_msg}"}]}
     ]
 
     response = bedrock.invoke_model(
         modelId=BEDROCK_MODEL_ID,
         body=json.dumps({
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": 300,
-            "temperature": 0.3,
-            "system": SYSTEM_PROMPT,
-            "messages": messages
+            "messages": messages,
+            "inferenceConfig": {
+                "max_new_tokens": 300,
+                "temperature": 0.3
+            }
         }),
         contentType="application/json",
         accept="application/json"
     )
 
     result = json.loads(response["body"].read())
-    return result["content"][0]["text"].strip()
+    return result["output"]["message"]["content"][0]["text"].strip()
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -311,13 +333,13 @@ def ask_again(language: str):
     response = VoiceResponse()
     gather = Gather(
         input="speech",
-        action=f"/voice/gather?lang={language}",
+        action=f"{BASE_URL}/voice/gather?lang={language}" if BASE_URL else f"/voice/gather?lang={language}",
         method="POST",
         language="hi-IN" if language == "hi" else "en-IN",
         speech_timeout="auto",
         timeout=10
     )
-    msg = "Kripya dobara boliye." if language == "hi" else "Sorry, please say that again."
+    msg = "कृपया दोबारा बोलिए।" if language == "hi" else "Sorry, please say that again."
     tts_say(gather, msg, language)
     response.append(gather)
     return twiml_response(response)

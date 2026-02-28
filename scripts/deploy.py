@@ -32,41 +32,23 @@ def run(cmd):
 
 
 def create_lambda_role():
-    """Create IAM role for Lambda if it doesn't exist."""
-    print("Creating Lambda IAM role...")
-    trust = {
-        "Version": "2012-10-17",
-        "Statement": [{
-            "Effect": "Allow",
-            "Principal": {"Service": "lambda.amazonaws.com"},
-            "Action": "sts:AssumeRole"
-        }]
-    }
+    """Fetch existing Lambda role (created manually in console)."""
+    print("Fetching Lambda IAM role...")
     try:
-        role = iam_client.create_role(
-            RoleName="vaaniseva-lambda-role",
-            AssumeRolePolicyDocument=json.dumps(trust),
-            Description="VaaniSeva Lambda execution role"
-        )
-        arn = role["Role"]["Arn"]
-        # Attach policies
-        for policy in [
-            "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-            "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
-            "arn:aws:iam::aws:policy/AmazonBedrockFullAccess",
-            "arn:aws:iam::aws:policy/AmazonPollyFullAccess",
-            "arn:aws:iam::aws:policy/AmazonTranscribeFullAccess",
-            "arn:aws:iam::aws:policy/AmazonS3FullAccess",
-        ]:
-            iam_client.attach_role_policy(RoleName="vaaniseva-lambda-role", PolicyArn=policy)
-        print(f"  ✓ Role created: {arn}")
-        print("  Waiting 15s for role to propagate...")
-        import time; time.sleep(15)
-        return arn
-    except iam_client.exceptions.EntityAlreadyExistsException:
         arn = iam_client.get_role(RoleName="vaaniseva-lambda-role")["Role"]["Arn"]
-        print(f"  ✓ Role already exists: {arn}")
+        print(f"  ✓ Role found: {arn}")
         return arn
+    except iam_client.exceptions.NoSuchEntityException:
+        print("  ✗ Role 'vaaniseva-lambda-role' not found!")
+        print("  Create it manually in IAM Console:")
+        print("  IAM → Roles → Create role → Lambda → attach:")
+        print("    AWSLambdaBasicExecutionRole")
+        print("    AmazonDynamoDBFullAccess")
+        print("    AmazonBedrockFullAccess")
+        print("    AmazonPollyFullAccess")
+        print("    AmazonS3FullAccess")
+        print("  Name it: vaaniseva-lambda-role")
+        raise
 
 
 def package_lambda():
@@ -76,8 +58,8 @@ def package_lambda():
     shutil.rmtree("build", ignore_errors=True)
     os.makedirs(pkg_dir, exist_ok=True)
 
-    # Install deps into package directory
-    run(f"pip install twilio boto3 requests -t {pkg_dir} -q")
+    # Install deps into package directory (boto3 excluded — Lambda has it built-in)
+    run(f"pip install twilio requests -t {pkg_dir} -q")
 
     # Copy handler
     shutil.copy("lambdas/call_handler/handler.py", f"{pkg_dir}/handler.py")
@@ -99,7 +81,6 @@ def deploy_lambda(zip_path, role_arn):
     """Create or update the Lambda function."""
     print("Deploying Lambda...")
     env_vars = {
-        "AWS_REGION": AWS_REGION,
         "DYNAMODB_CALLS_TABLE":     os.environ["DYNAMODB_CALLS_TABLE"],
         "DYNAMODB_KNOWLEDGE_TABLE": os.environ["DYNAMODB_KNOWLEDGE_TABLE"],
         "DYNAMODB_VECTORS_TABLE":   os.environ["DYNAMODB_VECTORS_TABLE"],
@@ -110,11 +91,17 @@ def deploy_lambda(zip_path, role_arn):
         "TWILIO_AUTH_TOKEN":        os.environ["TWILIO_AUTH_TOKEN"],
         "BHASHINI_USER_ID":         os.environ.get("BHASHINI_USER_ID", ""),
         "BHASHINI_API_KEY":         os.environ.get("BHASHINI_API_KEY", ""),
+        "SARVAM_API_KEY":            os.environ.get("SARVAM_API_KEY", ""),
         "LOG_LEVEL":                "INFO",
     }
 
-    with open(zip_path, "rb") as f:
-        zip_bytes = f.read()
+    # Upload zip to S3 first (avoids 50MB inline limit and is faster)
+    s3_client = boto3.client("s3", region_name=AWS_REGION)
+    bucket = os.environ["S3_DOCUMENTS_BUCKET"]
+    s3_key = "deployments/call_handler.zip"
+    print(f"  Uploading zip to S3: s3://{bucket}/{s3_key}")
+    s3_client.upload_file(zip_path, bucket, s3_key)
+    print(f"  ✓ Uploaded to S3")
 
     try:
         fn = lambda_client.create_function(
@@ -122,7 +109,7 @@ def deploy_lambda(zip_path, role_arn):
             Runtime="python3.11",
             Role=role_arn,
             Handler="handler.lambda_handler",
-            Code={"ZipFile": zip_bytes},
+            Code={"S3Bucket": bucket, "S3Key": s3_key},
             Timeout=30,
             MemorySize=512,
             Environment={"Variables": env_vars}
@@ -130,7 +117,15 @@ def deploy_lambda(zip_path, role_arn):
         arn = fn["FunctionArn"]
         print(f"  ✓ Lambda created: {arn}")
     except lambda_client.exceptions.ResourceConflictException:
-        lambda_client.update_function_code(FunctionName=LAMBDA_NAME, ZipFile=zip_bytes)
+        lambda_client.update_function_code(
+            FunctionName=LAMBDA_NAME,
+            S3Bucket=bucket,
+            S3Key=s3_key
+        )
+        # Wait for code update to finish before updating config
+        print("  Waiting for Lambda code update to complete...")
+        waiter = lambda_client.get_waiter("function_updated")
+        waiter.wait(FunctionName=LAMBDA_NAME)
         lambda_client.update_function_configuration(
             FunctionName=LAMBDA_NAME,
             Environment={"Variables": env_vars},
