@@ -1,7 +1,7 @@
 # VaaniSeva - Lambda: call-handler
 # TTS: Sarvam AI (primary, better Hindi) → Amazon Polly via Twilio builtin (fallback)
 # STT: Twilio native Gather speech recognition (free, built-in)
-# LLM: Amazon Bedrock Nova Micro (Amazon native, no card required) + RAG
+# LLM: Amazon Bedrock (Claude 3.5 Haiku / configurable via BEDROCK_MODEL_ID) + RAG
 
 import json
 import os
@@ -40,7 +40,7 @@ RULES:
 - When the user speaks English, reply in simple English.
 - Use simple, everyday words a villager would understand — no jargon.
 - Keep answers to 2-3 short sentences max (this is a phone call, not an essay).
-- You know about: PM-Kisan, Ayushman Bharat, MGNREGA, PM Awas Yojana, Sukanya Samriddhi, PM Mudra, PM Fasal Bima, Atal Pension, PM SVANidhi, Beti Bachao, Janani Suraksha, PM Garib Kalyan Anna, Jan Dhan, PM Ujjwala, National Scholarship Portal.
+- You know about: PM-Kisan, Ayushman Bharat, MGNREGA, PM Awas Yojana, Sukanya Samriddhi, PM Mudra Yojana, PM Fasal Bima, Atal Pension Yojana, PM SVANidhi, Beti Bachao Beti Padhao, Janani Suraksha Yojana, PM Garib Kalyan Anna, PM Jan Dhan Yojana, PM Ujjwala Yojana, National Scholarship Portal, Soil Health Card, PM POSHAN (Mid-Day Meal), Mahila Samman Savings Certificate, PM Kaushal Vikas Yojana, PM Suraksha Bima Yojana, PM Jeevan Jyoti Bima Yojana, Stand Up India, PM Matru Vandana Yojana, National Family Benefit Scheme, Samagra Shiksha Abhiyan, Rashtriya Bal Swasthya Karyakram, Saubhagya (Har Ghar Bijli), Swachh Bharat Mission Gramin, PM Shram Yogi Mandhan, PM Vishwakarma Yojana, Janani Shishu Suraksha Karyakram, PM Krishi Sinchai Yojana.
 - If asked about something else, say you only know about government schemes.
 - End with asking if they want to know more."""
 

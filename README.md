@@ -78,9 +78,9 @@ VaaniSeva provides a simple voice-based interface accessible via basic feature p
 
 **Processing Layer:**
 - AWS Lambda (serverless compute)
-- Deepgram (speech-to-text)
-- Amazon Polly (text-to-speech)
-- Bhashini API (Indian language support)
+- Twilio Native Gather (speech-to-text)
+- Sarvam AI (text-to-speech, primary)
+- Amazon Polly (text-to-speech, fallback)
 
 **Intelligence Layer:**
 - Claude AI (conversation and reasoning)
@@ -106,18 +106,19 @@ VaaniSeva provides a simple voice-based interface accessible via basic feature p
 ### Telephony & Voice
 - Twilio Voice API
 - Twilio SMS
-- IVR system
+- Twilio Native Gather (STT)
 
 ### Speech Processing
-- Deepgram (STT) with Hindi support
-- Amazon Polly (TTS) - multilingual
-- Bhashini API (Indian languages)
+- Twilio Native Gather (STT) with Hindi support
+- Sarvam AI (TTS) - primary, better Hindi quality
+- Amazon Polly (TTS) - multilingual fallback
 - Audio processing and normalization
 
 ### AI & Intelligence
-- Anthropic Claude (conversation AI)
+- Amazon Bedrock (LLM via Claude / configurable)
+- Sarvam AI (Hindi TTS)
 - AWS Lambda (serverless)
-- Custom knowledge retrieval
+- Custom knowledge retrieval (RAG)
 
 ### AWS Infrastructure
 - Lambda (compute)
@@ -142,9 +143,9 @@ VaaniSeva provides a simple voice-based interface accessible via basic feature p
 
 ### Cost Breakdown
 - **Twilio Voice:** ₹4.50/min
-- **Deepgram STT:** ₹2.50/min
-- **Claude AI:** ₹3.00/call
-- **Polly TTS:** ₹1.50/min
+- **Sarvam AI TTS:** ₹1.50/min
+- **Bedrock LLM:** ₹3.00/call
+- **Polly TTS (fallback):** ₹1.00/min
 - **AWS Infrastructure:** ₹1.00/call
 
 **Current Cost per Call:** ₹12.50  
@@ -235,11 +236,10 @@ VaaniSeva directly contributes to:
 ## 🚀 Getting Started
 
 ### Prerequisites
-- AWS Account with appropriate permissions
+- AWS Account with Bedrock model access enabled
 - Twilio Account with Voice API access
-- Anthropic API key
-- Deepgram API key
-- Bhashini API access
+- Sarvam AI API key (for Hindi TTS)
+- AWS DynamoDB tables and S3 bucket provisioned
 
 ### Installation
 
@@ -269,10 +269,14 @@ Edit `.env` file:
 TWILIO_ACCOUNT_SID=your_account_sid
 TWILIO_AUTH_TOKEN=your_auth_token
 TWILIO_PHONE_NUMBER=your_phone_number
-ANTHROPIC_API_KEY=your_claude_api_key
-DEEPGRAM_API_KEY=your_deepgram_key
-BHASHINI_API_KEY=your_bhashini_key
-AWS_REGION=ap-south-1
+SARVAM_API_KEY=your_sarvam_api_key
+BEDROCK_MODEL_ID=us.anthropic.claude-3-5-haiku-20241022-v1:0
+BEDROCK_EMBEDDING_MODEL_ID=amazon.titan-embed-text-v2:0
+DYNAMODB_CALLS_TABLE=vaaniseva-calls
+DYNAMODB_KNOWLEDGE_TABLE=vaaniseva-knowledge
+DYNAMODB_VECTORS_TABLE=vaaniseva-vectors
+S3_DOCUMENTS_BUCKET=vaaniseva-documents
+AWS_REGION=us-east-1
 ```
 
 ---
@@ -320,9 +324,9 @@ Email: [contact email]
 ## 🙏 Acknowledgments
 
 - **AWS & Anthropic** - AI for Bharat Hackathon organizers
-- **Bhashini** - Indian language AI support
-- **Twilio** - Telephony infrastructure
-- **Deepgram** - Speech recognition technology
+- **Sarvam AI** - Hindi text-to-speech
+- **Twilio** - Telephony infrastructure and speech recognition
+- **Amazon Polly** - Fallback TTS
 
 ---
 
