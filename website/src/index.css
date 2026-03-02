@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base ──────────────────────────────────────────── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: #FFFFFF;
+  color: #1A1A2E;
+  overflow-x: hidden;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F8F9FA;
+}
+::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* ─── Utility Classes ───────────────────────────────── */
+.text-gradient-saffron {
+  background: linear-gradient(135deg, #FF6B00, #EA580C);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-blue {
+  background: linear-gradient(135deg, #2563EB, #1D4ED8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.bg-gradient-saffron {
+  background: linear-gradient(135deg, #FF6B00, #EA580C);
+}
+
+.bg-gradient-hero {
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.4) 40%,
+    rgba(0, 0, 0, 0) 65%
+  );
+}
+
+/* ─── Section Spacing ───────────────────────────────── */
+.section {
+  @apply py-20 px-6 md:px-12 lg:px-20;
+}
+
+.section-title {
+  @apply text-3xl md:text-4xl font-bold text-content-primary mb-4;
+}
+
+.section-subtitle {
+  @apply text-lg text-content-secondary max-w-2xl;
+}
+
+/* ─── Card ──────────────────────────────────────────── */
+.card {
+  @apply bg-white rounded-2xl border border-gray-100 p-6
+         shadow-sm hover:shadow-md transition-shadow duration-300;
+}
+
+/* ─── Button Styles ─────────────────────────────────── */
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2
+         px-6 py-3 rounded-xl font-semibold text-white
+         bg-gradient-saffron
+         hover:opacity-90 active:scale-[0.98]
+         transition-all duration-200;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center gap-2
+         px-6 py-3 rounded-xl font-semibold
+         text-content-primary bg-white
+         border border-gray-200
+         hover:bg-gray-50 active:scale-[0.98]
+         transition-all duration-200;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2
+         px-6 py-3 rounded-xl font-semibold
+         text-white bg-white/10 backdrop-blur-sm
+         border border-white/20
+         hover:bg-white/20 active:scale-[0.98]
+         transition-all duration-200;
+}
+
+/* ─── Hindi Text ────────────────────────────────────── */
+.font-hindi {
+  font-family: 'Noto Sans Devanagari', sans-serif;
+}

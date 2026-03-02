@@ -16,6 +16,16 @@ build/
 dist/
 *.zip
 
+# Node
+node_modules/
+.vite/
+
+# Large binary/media assets
+*.mp4
+*.glb
+*.gltf
+*.fbx
+
 # IDE
 .vscode/
 .idea/
