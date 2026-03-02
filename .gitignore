@@ -20,6 +20,11 @@ dist/
 node_modules/
 .vite/
 
+# Large binary assets (share manually via the "large models" folder)
+large models/
+website/public/hero.mp4
+website/public/models/
+
 # Large binary/media assets
 *.mp4
 *.glb
