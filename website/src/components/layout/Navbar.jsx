@@ -33,7 +33,7 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 bg-gradient-saffron rounded-lg flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 bg-gradient-accent rounded-lg flex items-center justify-center shadow-sm">
               <Phone size={18} className="text-white" />
             </div>
             <div className="flex flex-col leading-none">
@@ -110,13 +110,13 @@ export default function Navbar() {
       {mobileOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 shadow-lg animate-fade-in">
           <div className="px-6 py-4 space-y-3">
-            <a href="/#how-it-works" className="block text-sm font-medium text-content-secondary hover:text-saffron-500 py-2">
+            <a href="/#how-it-works" className="block text-sm font-medium text-content-secondary hover:text-accent-500 py-2">
               How It Works
             </a>
-            <a href="/#schemes" className="block text-sm font-medium text-content-secondary hover:text-saffron-500 py-2">
+            <a href="/#schemes" className="block text-sm font-medium text-content-secondary hover:text-accent-500 py-2">
               Schemes
             </a>
-            <Link to="/try" className="block text-sm font-medium text-content-secondary hover:text-saffron-500 py-2">
+            <Link to="/try" className="block text-sm font-medium text-content-secondary hover:text-accent-500 py-2">
               Try VaaniSeva
             </Link>
             <a href="tel:+12602048966" className="btn-primary text-sm w-full mt-2">

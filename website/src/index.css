@@ -38,8 +38,8 @@ body {
 }
 
 /* ─── Utility Classes ───────────────────────────────── */
-.text-gradient-saffron {
-  background: linear-gradient(135deg, #FF6B00, #EA580C);
+.text-gradient-accent {
+  background: linear-gradient(135deg, #10B981, #059669);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -52,8 +52,8 @@ body {
   background-clip: text;
 }
 
-.bg-gradient-saffron {
-  background: linear-gradient(135deg, #FF6B00, #EA580C);
+.bg-gradient-accent {
+  background: linear-gradient(135deg, #10B981, #059669);
 }
 
 .bg-gradient-hero {
@@ -88,7 +88,7 @@ body {
 .btn-primary {
   @apply inline-flex items-center justify-center gap-2
          px-6 py-3 rounded-xl font-semibold text-white
-         bg-gradient-saffron
+         bg-gradient-accent
          hover:opacity-90 active:scale-[0.98]
          transition-all duration-200;
 }
@@ -111,7 +111,17 @@ body {
          transition-all duration-200;
 }
 
-/* ─── Hindi Text ────────────────────────────────────── */
+/* ─── Hindi / Tamil Text ────────────────────────────── */
 .font-hindi {
   font-family: 'Noto Sans Devanagari', sans-serif;
+}
+
+.font-tamil {
+  font-family: 'Noto Sans Tamil', sans-serif;
+}
+
+/* ─── Hero Language Ticker ──────────────────────────── */
+@keyframes tickerScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }

@@ -105,8 +105,8 @@ function BrowserCall() {
           {/* Pulse rings during connecting/connected */}
           {(status === 'connecting' || status === 'connected') && (
             <>
-              <div className="absolute inset-0 rounded-full bg-saffron-500/10 animate-ping" style={{ animationDuration: '2s' }} />
-              <div className="absolute inset-4 rounded-full bg-saffron-500/10 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+              <div className="absolute inset-0 rounded-full bg-accent-500/10 animate-ping" style={{ animationDuration: '2s' }} />
+              <div className="absolute inset-4 rounded-full bg-accent-500/10 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
             </>
           )}
 
@@ -114,13 +114,13 @@ function BrowserCall() {
             status === 'connected'
               ? 'bg-green-50 border-4 border-green-400'
               : status === 'connecting'
-                ? 'bg-saffron-50 border-4 border-saffron-300'
+                ? 'bg-accent-50 border-4 border-accent-300'
                 : status === 'error'
                   ? 'bg-red-50 border-4 border-red-300'
                   : 'bg-gray-50 border-4 border-gray-200'
           }`}>
             {status === 'connecting' ? (
-              <Loader2 size={40} className="text-saffron-500 animate-spin" />
+              <Loader2 size={40} className="text-accent-500 animate-spin" />
             ) : status === 'connected' ? (
               <>
                 <PhoneCall size={36} className="text-green-500 mb-2" />
@@ -250,7 +250,7 @@ function CallbackRequest() {
         <p className="text-content-secondary mb-2">
           VaaniSeva is dialing your number. Please pick up the call.
         </p>
-        <p className="font-hindi text-saffron-600 text-sm mb-8">
+        <p className="font-hindi text-accent-600 text-sm mb-8">
           आपके नंबर पर कॉल आ रही है। कृपया कॉल उठाएं।
         </p>
         <button
@@ -280,7 +280,7 @@ function CallbackRequest() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="98765 43210"
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-content-primary bg-white focus:border-saffron-500 focus:ring-1 focus:ring-saffron-500 outline-none transition-colors font-mono text-lg"
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-content-primary bg-white focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none transition-colors font-mono text-lg"
               maxLength={15}
             />
           </div>
@@ -297,7 +297,7 @@ function CallbackRequest() {
               onClick={() => setLang('hi')}
               className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
                 lang === 'hi'
-                  ? 'border-saffron-500 bg-saffron-50 text-saffron-700'
+                  ? 'border-accent-500 bg-accent-50 text-accent-700'
                   : 'border-gray-200 bg-white text-content-secondary hover:border-gray-300'
               }`}
             >
@@ -309,7 +309,7 @@ function CallbackRequest() {
               onClick={() => setLang('en')}
               className={`px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
                 lang === 'en'
-                  ? 'border-saffron-500 bg-saffron-50 text-saffron-700'
+                  ? 'border-accent-500 bg-accent-50 text-accent-700'
                   : 'border-gray-200 bg-white text-content-secondary hover:border-gray-300'
               }`}
             >
@@ -368,12 +368,12 @@ export default function TryPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-6 md:px-12 py-10">
-          <Link to="/" className="inline-flex items-center gap-2 text-sm text-content-secondary hover:text-saffron-500 transition-colors mb-6">
+          <Link to="/" className="inline-flex items-center gap-2 text-sm text-content-secondary hover:text-accent-500 transition-colors mb-6">
             <ArrowLeft size={16} />
             Back to Home
           </Link>
           <h1 className="text-3xl md:text-4xl font-bold text-content-primary mb-2">
-            <span className="font-hindi">वाणीसेवा आज़माएं</span>
+            Try VaaniSeva
           </h1>
           <p className="text-lg text-content-secondary">
             Try VaaniSeva — call directly from your browser or request a callback
@@ -388,7 +388,7 @@ export default function TryPage() {
             onClick={() => setTab('browser')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all ${
               tab === 'browser'
-                ? 'bg-gradient-saffron text-white shadow-sm'
+                ? 'bg-gradient-accent text-white shadow-sm'
                 : 'text-content-secondary hover:text-content-primary'
             }`}
           >
@@ -399,7 +399,7 @@ export default function TryPage() {
             onClick={() => setTab('callback')}
             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all ${
               tab === 'callback'
-                ? 'bg-gradient-saffron text-white shadow-sm'
+                ? 'bg-gradient-accent text-white shadow-sm'
                 : 'text-content-secondary hover:text-content-primary'
             }`}
           >

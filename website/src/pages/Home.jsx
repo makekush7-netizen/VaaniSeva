@@ -2,6 +2,17 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { Phone, ArrowRight, Mic, MessageCircle, Globe, Shield, Clock, Users, ChevronRight } from 'lucide-react'
 
+// ── Language availability ticker ──────────────────────
+// Duplicated so the scroll loop appears seamless
+const TICKER_ITEMS = [
+  { lang: 'Hindi',   native: 'हिंदी में उपलब्ध',          font: 'font-hindi' },
+  { lang: 'Marathi', native: 'मराठीत उपलब्ध',             font: 'font-hindi' },
+  { lang: 'Tamil',   native: 'தமிழில் கிடைக்கும்',        font: 'font-tamil' },
+  { lang: 'English', native: 'Available in English',      font: 'font-sans'  },
+  { lang: 'Telugu',  native: 'తెలుగులో అందుబాటులో ఉంది',  font: 'font-sans'  },
+  { lang: 'Kannada', native: 'ಕನ್ನಡದಲ್ಲಿ ಲಭ್ಯವಿದೆ',        font: 'font-sans'  },
+]
+
 // ── Scheme data ───────────────────────────────────────
 const schemes = [
   { name: 'PM-Kisan',           hindi: 'पीएम किसान',             desc: 'Direct income support of ₹6,000/year to farmer families', icon: '🌾' },
@@ -20,21 +31,18 @@ const steps = [
   {
     num: '01',
     title: 'Call the Number',
-    titleHi: 'नंबर पर कॉल करें',
     desc: 'Dial from any phone — smartphone or basic keypad phone. No internet needed.',
     icon: Phone,
   },
   {
     num: '02',
     title: 'Ask Your Question',
-    titleHi: 'अपना सवाल पूछें',
-    desc: 'Speak in Hindi or English. Ask about any government scheme naturally.',
+    desc: 'Speak naturally in Hindi or English. Ask about any government scheme.',
     icon: Mic,
   },
   {
     num: '03',
     title: 'Get Your Answer',
-    titleHi: 'जवाब पाएं',
     desc: 'AI gives you accurate, simple answers you can understand and act on.',
     icon: MessageCircle,
   },
@@ -44,7 +52,7 @@ const steps = [
 const stats = [
   { value: '30+', label: 'Government Schemes', icon: Shield },
   { value: '24/7', label: 'Always Available', icon: Clock },
-  { value: '2', label: 'Languages (Hindi & English)', icon: Globe },
+  { value: '2', label: 'Languages Supported', icon: Globe },
   { value: '500M+', label: 'Indians We Aim to Serve', icon: Users },
 ]
 
@@ -54,9 +62,10 @@ export default function Home() {
     <>
       {/* ═══ HERO SECTION ═══════════════════════════════ */}
       <section className="relative h-screen w-full overflow-hidden">
-        {/* Background Video */}
+        {/* Background Video — scale slightly to hide blurry edges */}
         <video
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover scale-105"
+          style={{ filter: 'contrast(1.04) brightness(0.92)' }}
           src="/hero.mp4"
           autoPlay
           muted
@@ -65,8 +74,9 @@ export default function Home() {
           preload="auto"
         />
 
-        {/* Left gradient overlay for text readability */}
+        {/* Gradient overlay — heavier to mask AI video artifacts */}
         <div className="absolute inset-0 bg-gradient-hero" />
+        <div className="absolute inset-0 bg-black/15" />
 
         {/* Content */}
         <div className="relative z-10 h-full flex items-center">
@@ -74,24 +84,44 @@ export default function Home() {
             <div className="max-w-xl">
               {/* Eyebrow */}
               <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 mb-6">
-                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
                 <span className="text-white/90 text-sm font-medium">Live Now — Call Anytime</span>
               </div>
 
-              {/* Title */}
-              <h1 className="font-hindi text-5xl md:text-7xl font-extrabold text-white leading-tight mb-2">
-                वाणीसेवा
+              {/* Static Title */}
+              <h1 className="font-sans text-5xl md:text-7xl font-extrabold text-white leading-tight mb-3">
+                VaaniSeva
               </h1>
+
+              {/* Multilingual scrolling ticker — constrained to title width */}
+              <div className="overflow-hidden mb-5" style={{ maxWidth: '100%' }}>
+                <div
+                  className="flex gap-8 whitespace-nowrap"
+                  style={{
+                    animation: 'tickerScroll 18s linear infinite',
+                    width: 'max-content',
+                  }}
+                >
+                  {/* Render twice for seamless loop */}
+                  {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
+                    <span
+                      key={i}
+                      className={`${item.font} text-sm md:text-base font-medium text-white/70 select-none`}
+                    >
+                      {item.native}
+                      <span className="ml-8 text-white/20">·</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
               <p className="text-xl md:text-2xl font-semibold text-white/90 mb-6">
                 Voice AI for Every Indian
               </p>
 
               {/* Tagline */}
               <p className="text-base md:text-lg text-white/70 mb-8 leading-relaxed max-w-md">
-                Access information about 30+ government schemes by simply making a phone call.
-                <span className="block mt-1 font-hindi text-white/50">
-                  किसी भी फ़ोन से कॉल करें — स्मार्टफ़ोन ज़रूरी नहीं
-                </span>
+                Access information about 30+ government schemes by simply making a phone call. No smartphone needed.
               </p>
 
               {/* CTAs */}
@@ -128,8 +158,8 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((s) => (
               <div key={s.label} className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-saffron-50 rounded-xl flex items-center justify-center">
-                  <s.icon size={20} className="text-saffron-500" />
+                <div className="w-10 h-10 bg-accent-50 rounded-xl flex items-center justify-center">
+                  <s.icon size={20} className="text-accent-500" />
                 </div>
                 <div>
                   <p className="text-xl font-bold text-content-primary">{s.value}</p>
@@ -146,24 +176,21 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-saffron-500 uppercase tracking-wider mb-2">Simple Process</p>
-            <h2 className="section-title text-center">
-              <span className="font-hindi">कैसे काम करता है?</span>
-              <span className="block text-2xl text-content-secondary font-normal mt-1">How It Works</span>
-            </h2>
+            <p className="text-sm font-semibold text-accent-500 uppercase tracking-wider mb-2">Simple Process</p>
+            <h2 className="section-title text-center">How It Works</h2>
+            <p className="section-subtitle mx-auto mt-2">Three steps. No app downloads. No internet required.</p>
           </div>
 
           {/* Steps */}
           <div className="grid md:grid-cols-3 gap-8">
             {steps.map((step, i) => (
               <div key={step.num} className="relative group">
-                <div className="card text-center px-8 py-10 hover:border-saffron-200 group-hover:-translate-y-1 transition-transform duration-300">
-                  <div className="w-16 h-16 bg-saffron-50 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-saffron-100 transition-colors">
-                    <step.icon size={28} className="text-saffron-500" />
+                <div className="card text-center px-8 py-10 hover:border-accent-200 group-hover:-translate-y-1 transition-transform duration-300">
+                  <div className="w-16 h-16 bg-accent-50 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-accent-100 transition-colors">
+                    <step.icon size={28} className="text-accent-500" />
                   </div>
-                  <p className="text-xs font-bold text-saffron-500 mb-2">STEP {step.num}</p>
-                  <h3 className="text-lg font-bold text-content-primary mb-1">{step.title}</h3>
-                  <p className="font-hindi text-sm text-saffron-600 mb-3">{step.titleHi}</p>
+                  <p className="text-xs font-bold text-accent-500 mb-2">STEP {step.num}</p>
+                  <h3 className="text-lg font-bold text-content-primary mb-3">{step.title}</h3>
                   <p className="text-sm text-content-secondary leading-relaxed">{step.desc}</p>
                 </div>
                 {/* Arrow connector */}
@@ -183,11 +210,8 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center mb-16">
-            <p className="text-sm font-semibold text-saffron-500 uppercase tracking-wider mb-2">Knowledge Base</p>
-            <h2 className="section-title text-center">
-              <span className="font-hindi">सरकारी योजनाएँ</span>
-              <span className="block text-2xl text-content-secondary font-normal mt-1">Government Schemes We Cover</span>
-            </h2>
+            <p className="text-sm font-semibold text-accent-500 uppercase tracking-wider mb-2">Knowledge Base</p>
+            <h2 className="section-title text-center">Government Schemes We Cover</h2>
             <p className="section-subtitle mx-auto mt-4">
               Ask VaaniSeva about any of these schemes in Hindi or English. Get eligibility, benefits, and how to apply.
             </p>
@@ -198,14 +222,14 @@ export default function Home() {
             {schemes.map((s) => (
               <div
                 key={s.name}
-                className="card flex items-start gap-4 hover:border-saffron-200 cursor-default"
+                className="card flex items-start gap-4 hover:border-accent-200 cursor-default"
               >
-                <div className="w-11 h-11 bg-saffron-50 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
+                <div className="w-11 h-11 bg-accent-50 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
                   {s.icon}
                 </div>
                 <div>
                   <h3 className="font-semibold text-content-primary text-sm">{s.name}</h3>
-                  <p className="font-hindi text-xs text-saffron-600">{s.hindi}</p>
+                  <p className="font-hindi text-xs text-accent-600">{s.hindi}</p>
                   <p className="text-xs text-content-secondary mt-1 leading-relaxed">{s.desc}</p>
                 </div>
               </div>
@@ -215,18 +239,18 @@ export default function Home() {
       </section>
 
       {/* ═══ CTA BANNER ═════════════════════════════════ */}
-      <section className="bg-gradient-saffron">
+      <section className="bg-gradient-accent">
         <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 py-16 text-center">
-          <h2 className="font-hindi text-3xl md:text-4xl font-bold text-white mb-3">
-            अभी कॉल करें
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+            Try VaaniSeva Now
           </h2>
           <p className="text-lg text-white/80 mb-8 max-w-lg mx-auto">
-            Try VaaniSeva right now — call from any phone or test it directly on the web
+            Call from any phone or test it directly on the web — it takes just 30 seconds
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <a
               href="tel:+12602048966"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white text-saffron-600 font-bold rounded-xl text-lg hover:bg-gray-50 transition-colors shadow-lg"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-white text-accent-600 font-bold rounded-xl text-lg hover:bg-gray-50 transition-colors shadow-lg"
             >
               <Phone size={22} />
               +1 260 204 8966
@@ -249,12 +273,12 @@ export default function Home() {
             {/* Brand */}
             <div>
               <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-9 h-9 bg-gradient-saffron rounded-lg flex items-center justify-center">
+                <div className="w-9 h-9 bg-gradient-accent rounded-lg flex items-center justify-center">
                   <Phone size={18} className="text-white" />
                 </div>
                 <div className="flex flex-col leading-none">
-                  <span className="font-hindi font-bold text-lg text-content-primary">वाणीसेवा</span>
-                  <span className="text-[10px] text-content-tertiary font-medium tracking-wider uppercase">VaaniSeva</span>
+                  <span className="font-bold text-lg text-content-primary">VaaniSeva</span>
+                  <span className="text-[10px] text-content-tertiary font-medium tracking-wider uppercase">Voice AI for India</span>
                 </div>
               </div>
               <p className="text-sm text-content-secondary leading-relaxed">
@@ -266,9 +290,9 @@ export default function Home() {
             <div>
               <h4 className="font-semibold text-sm text-content-primary mb-3">Quick Links</h4>
               <div className="space-y-2">
-                <a href="#how-it-works" className="block text-sm text-content-secondary hover:text-saffron-500 transition-colors">How It Works</a>
-                <a href="#schemes" className="block text-sm text-content-secondary hover:text-saffron-500 transition-colors">Schemes</a>
-                <Link to="/try" className="block text-sm text-content-secondary hover:text-saffron-500 transition-colors">Try VaaniSeva</Link>
+                <a href="#how-it-works" className="block text-sm text-content-secondary hover:text-accent-500 transition-colors">How It Works</a>
+                <a href="#schemes" className="block text-sm text-content-secondary hover:text-accent-500 transition-colors">Schemes</a>
+                <Link to="/try" className="block text-sm text-content-secondary hover:text-accent-500 transition-colors">Try VaaniSeva</Link>
               </div>
             </div>
 

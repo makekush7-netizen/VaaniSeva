@@ -15,10 +15,10 @@
 .vaani-floating-btn {
   width: 64px;
   height: 64px;
-  background: linear-gradient(135deg, #FF6B00, #EA580C);
+  background: linear-gradient(135deg, #10B981, #059669);
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(255, 107, 0, 0.35);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.35);
   transition: transform 0.2s, box-shadow 0.2s;
   overflow: hidden;
   position: relative;
@@ -27,7 +27,7 @@
 
 .vaani-floating-btn:hover {
   transform: scale(1.08);
-  box-shadow: 0 6px 28px rgba(255, 107, 0, 0.45);
+  box-shadow: 0 6px 28px rgba(16, 185, 129, 0.45);
 }
 
 .vaani-avatar-preview {
@@ -42,7 +42,7 @@
   right: -3px;
   bottom: -3px;
   border-radius: 50%;
-  border: 2px solid #FF6B00;
+  border: 2px solid #10B981;
   animation: vaaniPulse 2s ease-out infinite;
   pointer-events: none;
 }
@@ -75,7 +75,7 @@
 /* ── Header ────────────────────────────────────────── */
 .vaani-header {
   padding: 14px 18px;
-  background: linear-gradient(135deg, #FF6B00, #EA580C);
+  background: linear-gradient(135deg, #10B981, #059669);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -233,7 +233,7 @@
 
 .vaani-chat-list .msg.user {
   align-self: flex-end;
-  background: linear-gradient(135deg, #FF6B00, #EA580C);
+  background: linear-gradient(135deg, #10B981, #059669);
   color: white;
   border-bottom-right-radius: 4px;
 }
@@ -294,9 +294,9 @@
 }
 
 .vaani-chip:hover {
-  background: #FFF7ED;
-  border-color: #FF6B00;
-  color: #FF6B00;
+  background: #ECFDF5;
+  border-color: #10B981;
+  color: #10B981;
 }
 
 /* ── Input Row ─────────────────────────────────────── */
@@ -323,7 +323,7 @@
 }
 
 .vaani-input-row input:focus {
-  border-color: #FF6B00;
+  border-color: #10B981;
 }
 
 .vaani-input-row input::placeholder {
@@ -351,7 +351,7 @@
 }
 
 .vaani-input-row button:last-child {
-  background: linear-gradient(135deg, #FF6B00, #EA580C);
+  background: linear-gradient(135deg, #10B981, #059669);
   color: white;
 }
 

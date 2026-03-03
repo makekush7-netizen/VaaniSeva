@@ -1,7 +1,9 @@
 # VaaniSeva - Lambda: call-handler
-# TTS: Sarvam AI (primary, better Hindi) → Amazon Polly via Twilio builtin (fallback)
-# STT: Twilio native Gather speech recognition (free, built-in)
-# LLM: Amazon Bedrock (Claude 3.5 Haiku / configurable via BEDROCK_MODEL_ID) + RAG
+# Languages : Hindi (hi) | Marathi (mr) | Tamil (ta) | English (en)
+# TTS       : Sarvam AI (primary, all 4 langs) → Amazon Polly fallback
+# STT       : Twilio native Gather speech recognition
+# LLM       : Amazon Bedrock (configurable) + RAG
+# Latency   : DynamoDB log on background thread · Single combined TTS call · 150 token cap
 
 import json
 import os
@@ -9,6 +11,7 @@ import base64
 import math
 import uuid
 import logging
+import threading
 import boto3
 import requests
 from twilio.twiml.voice_response import VoiceResponse, Gather
@@ -33,16 +36,55 @@ SARVAM_API_KEY             = os.environ.get("SARVAM_API_KEY", "")
 S3_BUCKET                  = os.environ["S3_DOCUMENTS_BUCKET"]
 BASE_URL                   = ""  # Set at runtime from API Gateway event
 
-SYSTEM_PROMPT = """You are VaaniSeva (वाणीसेवा), an AI phone assistant helping rural Indians learn about government schemes.
+# ── Language config ──────────────────────────────────────────
+LANG_CONFIG = {
+    "hi": {
+        "sarvam_code": "hi-IN",
+        "sarvam_speaker": "anushka",
+        "polly_voice": "Polly.Aditi",
+        "twilio_speech_lang": "hi-IN",
+        "digit": "1",
+    },
+    "mr": {
+        "sarvam_code": "mr-IN",
+        "sarvam_speaker": "anushka",
+        "polly_voice": "Polly.Aditi",
+        "twilio_speech_lang": "mr-IN",
+        "digit": "2",
+    },
+    "ta": {
+        "sarvam_code": "ta-IN",
+        "sarvam_speaker": "nithya",
+        "polly_voice": "Polly.Aditi",
+        "twilio_speech_lang": "ta-IN",
+        "digit": "3",
+    },
+    "en": {
+        "sarvam_code": "en-IN",
+        "sarvam_speaker": "vidya",
+        "polly_voice": "Polly.Raveena",
+        "twilio_speech_lang": "en-IN",
+        "digit": "4",
+    },
+}
 
-RULES:
-- When the user speaks Hindi, you MUST reply in pure Devanagari Hindi (हिंदी). NEVER use romanized/Hinglish like "aap" or "yojana". Always write आप, योजना, etc.
-- When the user speaks English, reply in simple English.
-- Use simple, everyday words a villager would understand — no jargon.
-- Keep answers to 2-3 short sentences max (this is a phone call, not an essay).
-- You know about: PM-Kisan, Ayushman Bharat, MGNREGA, PM Awas Yojana, Sukanya Samriddhi, PM Mudra Yojana, PM Fasal Bima, Atal Pension Yojana, PM SVANidhi, Beti Bachao Beti Padhao, Janani Suraksha Yojana, PM Garib Kalyan Anna, PM Jan Dhan Yojana, PM Ujjwala Yojana, National Scholarship Portal, Soil Health Card, PM POSHAN (Mid-Day Meal), Mahila Samman Savings Certificate, PM Kaushal Vikas Yojana, PM Suraksha Bima Yojana, PM Jeevan Jyoti Bima Yojana, Stand Up India, PM Matru Vandana Yojana, National Family Benefit Scheme, Samagra Shiksha Abhiyan, Rashtriya Bal Swasthya Karyakram, Saubhagya (Har Ghar Bijli), Swachh Bharat Mission Gramin, PM Shram Yogi Mandhan, PM Vishwakarma Yojana, Janani Shishu Suraksha Karyakram, PM Krishi Sinchai Yojana.
-- If asked about something else, say you only know about government schemes.
-- End with asking if they want to know more."""
+DIGIT_TO_LANG = {v["digit"]: k for k, v in LANG_CONFIG.items()}
+
+# ── System prompt — expanded beyond schemes ──────────────────
+SYSTEM_PROMPT = """You are VaaniSeva (वाणीसेवा), an AI voice assistant for rural India. You help people with:
+- Government schemes and welfare programs (PM-Kisan, Ayushman Bharat, MGNREGA, PM Awas, Sukanya Samriddhi, Ujjwala, Jan Dhan, Mudra, Atal Pension, Fasal Bima, SVANidhi, Beti Bachao, Janani Suraksha, Garib Kalyan Anna, National Scholarship, Soil Health Card, POSHAN, Mahila Samman Savings, Kaushal Vikas, Suraksha Bima, Jeevan Jyoti Bima, Stand Up India, Matru Vandana, National Family Benefit, Samagra Shiksha, RBSK, Saubhagya, Swachh Bharat, Shram Yogi Mandhan, Vishwakarma Yojana, Krishi Sinchai Yojana)
+- Basic farming advice (crop selection, pest control, soil health, irrigation)
+- Healthcare guidance (nearby hospitals, ASHA workers, common illnesses)
+- Financial literacy (saving, loans, bank accounts, insurance)
+- Education support (scholarships, school enrollment, mid-day meals)
+- Ration card, Aadhaar, voter ID related queries
+
+STRICT RULES:
+- Reply in the SAME language the user spoke. Hindi → pure Devanagari. Marathi → pure Marathi script. Tamil → Tamil script. English → simple English. NEVER mix scripts.
+- Keep answers SHORT — 2-3 sentences max. This is a phone call.
+- Use simple village-level words. No jargon.
+- Always end by asking if they want to know more.
+- If you don't know something, say so honestly and suggest the relevant helpline."""
 
 
 # ══════════════════════════════════════════════════════════════
@@ -53,15 +95,18 @@ def sarvam_tts(text: str, language: str) -> str | None:
     """
     Call Sarvam AI TTS. Uploads audio to S3, returns presigned URL (1hr).
     Returns None on any failure so caller can fall back to Polly.
+    pace:1.1 for slightly faster delivery on phone calls.
     """
     if not SARVAM_API_KEY:
         return None
     try:
+        cfg = LANG_CONFIG.get(language, LANG_CONFIG["en"])
         payload = {
             "inputs": [text],
-            "target_language_code": "hi-IN" if language == "hi" else "en-IN",
-            "speaker": "anushka" if language == "hi" else "vidya",
-            "model": "bulbul:v2"
+            "target_language_code": cfg["sarvam_code"],
+            "speaker": cfg["sarvam_speaker"],
+            "model": "bulbul:v2",
+            "pace": 1.1
         }
         resp = requests.post(
             "https://api.sarvam.ai/text-to-speech",
@@ -76,7 +121,7 @@ def sarvam_tts(text: str, language: str) -> str | None:
         url = s3_client.generate_presigned_url(
             "get_object", Params={"Bucket": S3_BUCKET, "Key": key}, ExpiresIn=3600
         )
-        logger.info(f"Sarvam TTS OK → {key}")
+        logger.info(f"Sarvam TTS OK → {key} (lang={language})")
         return url
     except Exception as e:
         logger.warning(f"Sarvam TTS failed, falling back to Polly: {e}")
@@ -86,13 +131,14 @@ def sarvam_tts(text: str, language: str) -> str | None:
 def tts_say(target, text: str, language: str):
     """
     Add TTS audio to a TwiML Gather or Response object.
-    Tries Sarvam AI first; falls back to Amazon Polly via Twilio builtin <Say>.
+    Tries Sarvam AI first (all 4 languages); falls back to Amazon Polly via Twilio builtin <Say>.
     """
     audio_url = sarvam_tts(text, language)
     if audio_url:
         target.play(audio_url)   # Sarvam audio from S3
     else:
-        voice = "Polly.Aditi" if language == "hi" else "Polly.Raveena"
+        cfg   = LANG_CONFIG.get(language, LANG_CONFIG["en"])
+        voice = cfg["polly_voice"]
         target.say(text, voice=voice)  # Polly via Twilio — zero extra config
 
 
@@ -177,39 +223,53 @@ def handle_incoming(params):
 def handle_language_select(params):
     call_sid = params.get("CallSid", "")
     digit    = params.get("Digits", "2")
-    language = "hi" if digit == "1" else "en"
+    language = DIGIT_TO_LANG.get(digit, "hi")  # 1=hi, 2=mr, 3=ta, 4=en
 
-    # Update language in DynamoDB
-    calls_table.update_item(
-        Key={"call_id": call_sid, "timestamp": get_call_timestamp(call_sid)},
-        UpdateExpression="SET #lang = :lang",
-        ExpressionAttributeNames={"#lang": "language"},
-        ExpressionAttributeValues={":lang": language}
-    )
+    # Update DynamoDB on background thread (non-blocking)
+    def _update_lang():
+        try:
+            ts = get_call_timestamp(call_sid)
+            calls_table.update_item(
+                Key={"call_id": call_sid, "timestamp": ts},
+                UpdateExpression="SET #lang = :lang",
+                ExpressionAttributeNames={"#lang": "language"},
+                ExpressionAttributeValues={":lang": language}
+            )
+        except Exception as e:
+            logger.warning(f"DynamoDB lang update failed: {e}")
+    threading.Thread(target=_update_lang, daemon=True).start()
 
-    prompt = (
-        "आप कौनसी सरकारी योजना के बारे में जानना चाहते हैं? बोलिए।"
-        if language == "hi"
-        else "Which government scheme would you like to know about? Please speak."
-    )
-    fallback_msg = (
-        "कुछ सुनाई नहीं दिया। कृपया दोबारा कॉल करें।"
-        if language == "hi" else "I didn't hear anything. Please call again."
-    )
+    # Open-ended question in the selected language
+    prompts = {
+        "hi": "आप क्या जानना चाहते हैं? बोलिए।",
+        "mr": "तुम्हाला काय जाणून घ्यायचे आहे? सांगा.",
+        "ta": "நீங்கள் என்ன அறிய விரும்புகிறீர்கள்? சொல்லுங்கள்.",
+        "en": "What would you like to know? Please speak.",
+    }
+    fallbacks = {
+        "hi": "कुछ सुनाई नहीं दिया। कृपया दोबारा कॉल करें।",
+        "mr": "काही ऐकू आले नाही. कृपया पुन्हा कॉल करा.",
+        "ta": "எதுவும் கேட்கவில்லை. மீண்டும் அழைக்கவும்.",
+        "en": "I didn't hear anything. Please call again.",
+    }
+
+    cfg        = LANG_CONFIG[language]
+    prompt     = prompts[language]
+    fallback   = fallbacks[language]
+    gather_url = f"{BASE_URL}/voice/gather?lang={language}" if BASE_URL else f"/voice/gather?lang={language}"
 
     response = VoiceResponse()
-    gather_url = f"{BASE_URL}/voice/gather?lang={language}" if BASE_URL else f"/voice/gather?lang={language}"
-    gather = Gather(
+    gather   = Gather(
         input="speech",
         action=gather_url,
         method="POST",
-        language="hi-IN" if language == "hi" else "en-IN",
+        language=cfg["twilio_speech_lang"],
         speech_timeout="auto",
         timeout=10
     )
     tts_say(gather, prompt, language)
     response.append(gather)
-    tts_say(response, fallback_msg, language)
+    tts_say(response, fallback, language)
     return twiml_response(response)
 
 
@@ -217,44 +277,65 @@ def handle_language_select(params):
 def handle_gather(params):
     call_sid    = params.get("CallSid", "")
     speech_text = params.get("SpeechResult", "")
-    language    = params.get("lang", "en")
+    language    = params.get("lang", "hi")
 
     logger.info(f"Speech: '{speech_text}' | Lang: {language} | Call: {call_sid}")
 
     if not speech_text:
         return ask_again(language)
 
+    error_msgs = {
+        "hi": "मुझे अभी कुछ तकलीफ हो रही है। थोड़ी देर बाद कोशिश करें।",
+        "mr": "मला आत्ता काही अडचण आहे. थोड्या वेळाने प्रयत्न करा.",
+        "ta": "எனக்கு தற்போது சிரமம் ஆகிறது. கொஞ்சம் நேரம் கழித்து முயற்சிக்கவும்.",
+        "en": "I'm having trouble right now. Please try again in a moment.",
+    }
+    follow_ups = {
+        "hi": "क्या आप और कुछ जानना चाहते हैं?",
+        "mr": "तुम्हाला आणखी काही जाणून घ्यायचे आहे का?",
+        "ta": "உங்களுக்கு வேறு ஏதாவது தெரிந்து கொள்ள வேண்டுமா?",
+        "en": "Would you like to know anything else?",
+    }
+    goodbyes = {
+        "hi": "धन्यवाद। वाणीसेवा में कॉल करने के लिए शुक्रिया।",
+        "mr": "धन्यवाद. वाणीसेवाला कॉल केल्याबद्दल आभारी आहोत.",
+        "ta": "நன்றி. வாணீசேவாவை அழைத்தமைக்கு நன்றி.",
+        "en": "Thank you for calling VaaniSeva. Goodbye.",
+    }
+
     try:
         answer = rag_pipeline(speech_text, language)
     except Exception as e:
         logger.error(f"RAG error: {e}")
-        answer = (
-            "मुझे अभी कुछ तकलीफ हो रही है। थोड़ी देर बाद कोशिश करें।"
-            if language == "hi"
-            else "I'm having trouble right now. Please try again in a moment."
-        )
+        answer = error_msgs.get(language, error_msgs["en"])
 
-    follow_up = (
-        "क्या आप और कुछ जानना चाहते हैं?"
-        if language == "hi" else "Would you like to know anything else?"
-    )
-    goodbye = "धन्यवाद। वाणीसेवा में कॉल करने के लिए शुक्रिया।" if language == "hi" \
-              else "Thank you for calling VaaniSeva. Goodbye."
+    follow_up = follow_ups.get(language, follow_ups["en"])
+    goodbye   = goodbyes.get(language, goodbyes["en"])
+    cfg       = LANG_CONFIG.get(language, LANG_CONFIG["en"])
+
+    # Single combined TTS call (answer + follow_up) to cut 1 Sarvam round-trip
+    combined_msg = f"{answer} {follow_up}"
 
     response = VoiceResponse()
     gather = Gather(
         input="speech",
         action=f"{BASE_URL}/voice/gather?lang={language}" if BASE_URL else f"/voice/gather?lang={language}",
         method="POST",
-        language="hi-IN" if language == "hi" else "en-IN",
+        language=cfg["twilio_speech_lang"],
         speech_timeout="auto",
         timeout=15
     )
-    tts_say(gather, f"{answer} {follow_up}", language)
+    tts_say(gather, combined_msg, language)
     response.append(gather)
     tts_say(response, goodbye, language)
 
-    log_query(call_sid, speech_text, answer, language)
+    # Log on background thread — don't block the response
+    threading.Thread(
+        target=log_query,
+        args=(call_sid, speech_text, answer, language),
+        daemon=True
+    ).start()
+
     return twiml_response(response)
 
 
@@ -287,7 +368,9 @@ def cosine_similarity(a: list, b: list) -> float:
 
 
 def retrieve_context(query_embedding: list, language: str) -> str:
-    """Cosine similarity search against vaaniseva-vectors table (scan OK for small dataset)."""
+    """Cosine similarity search against vaaniseva-vectors table.
+    Uses language-aware field priority so Marathi / Tamil users get native text.
+    """
     items = vectors_table.scan().get("Items", [])
     if not items:
         return "No scheme information loaded yet."
@@ -296,17 +379,39 @@ def retrieve_context(query_embedding: list, language: str) -> str:
         (cosine_similarity(query_embedding, item.get("embedding", [])), item)
         for item in items if item.get("embedding")
     ]
-    top      = sorted(scored, key=lambda x: x[0], reverse=True)[:3]
-    lang_key = "hi" if language == "hi" else "en"
-    return "\n\n".join(item.get(f"text_{lang_key}", item.get("text", "")) for _, item in top)
+    top = sorted(scored, key=lambda x: x[0], reverse=True)[:3]
+
+    # Field priority: native language first, then Hindi fallback, then English
+    field_priority = {
+        "hi": ["text_hi", "text_en", "text"],
+        "mr": ["text_mr", "text_hi", "text_en", "text"],
+        "ta": ["text_ta", "text_hi", "text_en", "text"],
+        "en": ["text_en", "text_hi", "text"],
+    }
+    fields = field_priority.get(language, ["text_en", "text"])
+
+    def best_text(item):
+        for f in fields:
+            val = item.get(f, "")
+            if val:
+                return val
+        return ""
+
+    return "\n\n".join(best_text(item) for _, item in top)
 
 
 def ask_llm(query: str, context: str, language: str) -> str:
-    lang_instruction = "जवाब पूरी तरह हिंदी देवनागरी लिपि में दो। कोई भी अंग्रेजी या रोमन अक्षर मत लिखो।" if language == "hi" else "Respond in simple English."
+    lang_instructions = {
+        "hi": "जवाब पूरी तरह हिंदी देवनागरी लिपि में दो। कोई भी अंग्रेजी या रोमन अक्षर मत लिखो।",
+        "mr": "उत्तर संपूर्णपणे मराठी लिपीत द्या. कोणतेही इंग्रजी किंवा रोमन अक्षर वापरू नका.",
+        "ta": "பதிலை முழுவதுமாக தமிழ் எழுத்தில் கொடுங்கள். எந்த ஆங்கிலமும் ரோமன் எழுத்தும் வேண்டாம்.",
+        "en": "Respond in simple, clear English.",
+    }
+    lang_instruction = lang_instructions.get(language, lang_instructions["en"])
 
     user_msg = f"""{lang_instruction}
 
-Context from government scheme database:
+Context from knowledge database:
 {context}
 
 User's question: {query}
@@ -322,8 +427,8 @@ Answer in 2-3 short sentences suitable for a phone call."""
         body=json.dumps({
             "messages": messages,
             "inferenceConfig": {
-                "max_new_tokens": 300,
-                "temperature": 0.3
+                "max_new_tokens": 150,
+                "temperature": 0.2
             }
         }),
         contentType="application/json",
@@ -336,17 +441,23 @@ Answer in 2-3 short sentences suitable for a phone call."""
 
 # ── Helpers ──────────────────────────────────────────────────
 def ask_again(language: str):
+    msgs = {
+        "hi": "कृपया दोबारा बोलिए।",
+        "mr": "कृपया पुन्हा सांगा.",
+        "ta": "மீண்டும் சொல்லுங்கள்.",
+        "en": "Sorry, please say that again.",
+    }
+    cfg = LANG_CONFIG.get(language, LANG_CONFIG["en"])
     response = VoiceResponse()
     gather = Gather(
         input="speech",
         action=f"{BASE_URL}/voice/gather?lang={language}" if BASE_URL else f"/voice/gather?lang={language}",
         method="POST",
-        language="hi-IN" if language == "hi" else "en-IN",
+        language=cfg["twilio_speech_lang"],
         speech_timeout="auto",
         timeout=10
     )
-    msg = "कृपया दोबारा बोलिए।" if language == "hi" else "Sorry, please say that again."
-    tts_say(gather, msg, language)
+    tts_say(gather, msgs.get(language, msgs["en"]), language)
     response.append(gather)
     return twiml_response(response)
 

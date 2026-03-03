@@ -7,15 +7,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        saffron: {
-          50:  '#FFF7ED',
-          100: '#FFEDD5',
-          200: '#FED7AA',
-          300: '#FDBA74',
-          400: '#FB923C',
-          500: '#FF6B00',
-          600: '#EA580C',
-          700: '#C2410C',
+        accent: {
+          50:  '#ECFDF5',
+          100: '#D1FAE5',
+          200: '#A7F3D0',
+          300: '#6EE7B7',
+          400: '#34D399',
+          500: '#10B981',
+          600: '#059669',
+          700: '#047857',
         },
         surface: {
           primary:   '#FFFFFF',
@@ -31,6 +31,7 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         hindi: ['Noto Sans Devanagari', 'sans-serif'],
+        tamil: ['Noto Sans Tamil', 'sans-serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',
