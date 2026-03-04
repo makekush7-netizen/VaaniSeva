@@ -15,9 +15,16 @@ import logging
 import threading
 import boto3
 import requests
-from openai import OpenAI
 from twilio.twiml.voice_response import VoiceResponse, Gather
 from datetime import datetime
+
+# Optional OpenAI — only loaded if API key is set and package is installed
+try:
+    from openai import OpenAI as _OpenAI
+    _openai_available = True
+except ImportError:
+    _OpenAI = None
+    _openai_available = False
 
 logger = logging.getLogger()
 logger.setLevel(os.environ.get("LOG_LEVEL", "INFO"))
@@ -31,10 +38,10 @@ calls_table     = dynamodb.Table(os.environ["DYNAMODB_CALLS_TABLE"])
 knowledge_table = dynamodb.Table(os.environ["DYNAMODB_KNOWLEDGE_TABLE"])
 vectors_table   = dynamodb.Table(os.environ["DYNAMODB_VECTORS_TABLE"])
 
-# ── OpenAI client ────────────────────────────────────────────
+# ── OpenAI client (only if key is set AND package is installed) ───────────────
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-openai_client  = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
-LLM_PROVIDER   = os.environ.get("LLM_PROVIDER", "openai")  # "openai" or "bedrock"
+openai_client  = _OpenAI(api_key=OPENAI_API_KEY) if (OPENAI_API_KEY and _openai_available) else None
+LLM_PROVIDER   = os.environ.get("LLM_PROVIDER", "bedrock")
 
 # ── Config ───────────────────────────────────────────────────
 BEDROCK_MODEL_ID           = os.environ["BEDROCK_MODEL_ID"]

@@ -59,7 +59,7 @@ def package_lambda():
     os.makedirs(pkg_dir, exist_ok=True)
 
     # Install deps into package directory (boto3 excluded — Lambda has it built-in)
-    run(f"pip install twilio requests openai -t {pkg_dir} -q")
+    run(f"pip install twilio requests -t {pkg_dir} -q")
 
     # Copy handler
     shutil.copy("lambdas/call_handler/handler.py", f"{pkg_dir}/handler.py")
