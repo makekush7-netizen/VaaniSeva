@@ -80,7 +80,7 @@ export default function Home() {
 
               {/* Pill badge */}
               <div className="inline-flex items-center gap-2 bg-black/40 backdrop-blur-sm border border-white/15 rounded-full px-4 py-1.5 mb-7">
-                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-live-dot flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full animate-live-dot flex-shrink-0" style={{ backgroundColor: '#F0A832' }} />
                 <span className="text-white/85 text-sm font-medium tracking-wide">Live Now — Call Anytime</span>
               </div>
 
@@ -91,7 +91,7 @@ export default function Home() {
               >
                 India&apos;s Knowledge
                 <br />
-                <span style={{ color: '#34d399' }}>Now in Every Voice</span>
+                <span style={{ color: '#F0A832' }}>Now in Every Voice</span>
               </h1>
 
               {/* Subheadline */}
@@ -108,8 +108,8 @@ export default function Home() {
               <div
                 className="overflow-hidden rounded-lg mb-6"
                 style={{
-                  background: 'rgba(0,0,0,0.38)',
-                  border: '1px solid rgba(255,255,255,0.10)',
+                  background: 'rgba(212,134,11,0.15)',
+                  border: '1px solid rgba(212,134,11,0.25)',
                   backdropFilter: 'blur(6px)',
                   padding: '7px 0',
                 }}
@@ -121,8 +121,8 @@ export default function Home() {
                   {[TICKER_TEXT, TICKER_TEXT].map((txt, i) => (
                     <span
                       key={i}
-                      className="text-emerald-400 text-xs font-medium"
-                      style={{ padding: '0 2.5rem', minWidth: 'max-content' }}
+                      className="text-xs font-medium"
+                      style={{ color: '#F0A832', padding: '0 2.5rem', minWidth: 'max-content' }}
                     >
                       {txt}
                     </span>
@@ -149,7 +149,7 @@ export default function Home() {
                 <a
                   href="tel:+12602048966"
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-white text-[15px] active:scale-[0.98] transition-all duration-200"
-                  style={{ background: '#10b981', boxShadow: '0 4px 20px rgba(16,185,129,0.35)' }}
+                  style={{ background: '#D4860B', boxShadow: '0 4px 20px rgba(212,134,11,0.40)' }}
                 >
                   <Phone size={17} />
                   Call Now — +1 260 204 8966
@@ -261,21 +261,21 @@ export default function Home() {
       </section>
 
       {/* === CTA === */}
-      <section className="bg-gradient-accent">
+      <section style={{ background: 'linear-gradient(135deg, #1a0f00 0%, #3d1f00 50%, #1a0f00 100%)' }}>
         <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 py-16 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+          <h2 className="text-3xl md:text-4xl font-bold mb-3" style={{ color: '#F0A832' }}>
             One Call. Any Language. Real Answers.
           </h2>
-          <p className="text-lg text-white/80 mb-8 max-w-lg mx-auto">
+          <p className="text-lg text-white/75 mb-8 max-w-lg mx-auto">
             Join 10,000+ Indians already using VaaniSeva.
             No signup needed — just call.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <a href="tel:+12602048966" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-accent-600 font-bold rounded-xl text-lg hover:bg-gray-50 transition-colors shadow-lg">
+            <a href="tel:+12602048966" className="inline-flex items-center gap-2 px-8 py-4 font-bold rounded-xl text-lg text-white transition-colors shadow-lg hover:opacity-90" style={{ background: '#D4860B' }}>
               <Phone size={22} />
               +1 260 204 8966
             </a>
-            <Link to="/try" className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 text-white font-bold rounded-xl text-lg border-2 border-white/30 hover:bg-white/20 transition-colors">
+            <Link to="/try" className="inline-flex items-center gap-2 px-8 py-4 text-white font-bold rounded-xl text-lg hover:bg-white/10 transition-colors" style={{ border: '2px solid #D4860B' }}>
               Try on Web
               <ArrowRight size={18} />
             </Link>
