@@ -1,164 +1,193 @@
-import React from 'react'
+import React, { useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Phone, ArrowRight, Mic, MessageCircle, Globe, Shield, Clock, Users, ChevronRight } from 'lucide-react'
+import { Phone, ArrowRight, Mic, MessageCircle, Globe, Shield, Clock, Users } from 'lucide-react'
 
-// ── Language availability ticker ──────────────────────
-// Duplicated so the scroll loop appears seamless
-const TICKER_ITEMS = [
-  { lang: 'Hindi',   native: 'हिंदी में उपलब्ध',          font: 'font-hindi' },
-  { lang: 'Marathi', native: 'मराठीत उपलब्ध',             font: 'font-hindi' },
-  { lang: 'Tamil',   native: 'தமிழில் கிடைக்கும்',        font: 'font-tamil' },
-  { lang: 'English', native: 'Available in English',      font: 'font-sans'  },
-  { lang: 'Telugu',  native: 'తెలుగులో అందుబాటులో ఉంది',  font: 'font-sans'  },
-  { lang: 'Kannada', native: 'ಕನ್ನಡದಲ್ಲಿ ಲಭ್ಯವಿದೆ',        font: 'font-sans'  },
-]
+const TICKER_TEXT =
+  'हिंदी में उपलब्ध  ·  मराठीत उपलब्ध  ·  தமிழில் கிடைக்கும்  ·  Available in English  ·  తెలుగులో అందుబాటులో  ·  ಕನ್ನಡದಲ್ಲಿ ಲಭ್ಯವಿದೆ  ·  বাংলায় পাওয়া যাচ্ছে  ·'
 
-// ── Scheme data ───────────────────────────────────────
 const schemes = [
-  { name: 'PM-Kisan',           hindi: 'पीएम किसान',             desc: 'Direct income support of ₹6,000/year to farmer families', icon: '🌾' },
-  { name: 'Ayushman Bharat',    hindi: 'आयुष्मान भारत',          desc: 'Free health coverage up to ₹5 lakh per family per year', icon: '🏥' },
-  { name: 'MGNREGA',            hindi: 'मनरेगा',                 desc: '100 days guaranteed employment for rural households', icon: '⚒️' },
-  { name: 'PM Awas Yojana',     hindi: 'पीएम आवास योजना',        desc: 'Affordable housing for economically weaker sections', icon: '🏠' },
-  { name: 'Sukanya Samriddhi',  hindi: 'सुकन्या समृद्धि',        desc: 'Savings scheme for girl child education & marriage', icon: '👧' },
-  { name: 'PM Ujjwala',         hindi: 'पीएम उज्ज्वला',          desc: 'Free LPG connections for BPL households', icon: '🔥' },
-  { name: 'Jan Dhan Yojana',    hindi: 'जन धन योजना',            desc: 'Zero-balance bank accounts with insurance cover', icon: '🏦' },
-  { name: 'PM Mudra Yojana',    hindi: 'पीएम मुद्रा योजना',       desc: 'Collateral-free loans up to ₹10 lakh for small businesses', icon: '💼' },
-  { name: 'Atal Pension',       hindi: 'अटल पेंशन योजना',        desc: 'Guaranteed pension of ₹1,000-5,000/month after 60', icon: '👴' },
+  { name: 'PM-Kisan',            hindi: 'पीएम किसान',          desc: 'Direct income support of ₹6,000/year to farmer families',                   icon: '🌾' },
+  { name: 'Ayushman Bharat',     hindi: 'आयुष्मान भारत',       desc: 'Free health coverage up to ₹5 lakh per family per year',                    icon: '🏥' },
+  { name: 'MGNREGA',             hindi: 'मनरेगा',              desc: '100 days guaranteed employment for rural households',                        icon: '⚒️'  },
+  { name: 'PM Awas Yojana',      hindi: 'पीएम आवास योजना',     desc: 'Affordable housing for economically weaker sections',                       icon: '🏠' },
+  { name: 'Sukanya Samriddhi',   hindi: 'सुकन्या समृद्धि',     desc: 'Savings scheme for girl child education and marriage',                      icon: '👧' },
+  { name: 'PM Ujjwala',          hindi: 'पीएम उज्ज्वला',       desc: 'Free LPG connections for BPL households',                                   icon: '🔥' },
+  { name: 'Jan Dhan Yojana',     hindi: 'जन धन योजना',         desc: 'Zero-balance bank accounts with insurance cover',                           icon: '🏦' },
+  { name: 'PM Mudra Yojana',     hindi: 'पीएम मुद्रा योजना',    desc: 'Collateral-free loans up to ₹10 lakh for small businesses',                icon: '💼' },
+  { name: 'Atal Pension',        hindi: 'अटल पेंशन योजना',     desc: 'Guaranteed pension of ₹1,000-5,000/month after 60',                        icon: '👴' },
+  { name: 'Fasal Bima Yojana',   hindi: 'फसल बीमा योजना',      desc: 'Crop insurance protection for farmers against natural disasters',           icon: '🛡️' },
+  { name: 'iCall Mental Health', hindi: 'मानसिक स्वास्थ्य',    desc: 'Free counselling helpline — speak to someone who listens',                  icon: '💚' },
+  { name: 'Mandi Prices Live',   hindi: 'मंडी भाव',            desc: 'Live crop market prices from 3,000+ mandis across India, updated daily',   icon: '📊' },
 ]
 
-// ── Steps data ────────────────────────────────────────
 const steps = [
-  {
-    num: '01',
-    title: 'Call the Number',
-    desc: 'Dial from any phone — smartphone or basic keypad phone. No internet needed.',
-    icon: Phone,
-  },
-  {
-    num: '02',
-    title: 'Ask Your Question',
-    desc: 'Speak naturally in Hindi or English. Ask about any government scheme.',
-    icon: Mic,
-  },
-  {
-    num: '03',
-    title: 'Get Your Answer',
-    desc: 'AI gives you accurate, simple answers you can understand and act on.',
-    icon: MessageCircle,
-  },
+  { num: '01', title: 'Call from Any Phone',    desc: 'Dial from a basic keypad phone, smartphone, or anything in between. No app, no data, no setup.',        icon: Phone        },
+  { num: '02', title: 'Speak in Your Language', desc: 'Hindi, Marathi, Tamil, English — speak naturally in your own words and dialect.',                        icon: Mic          },
+  { num: '03', title: 'Get Verified Answers',   desc: 'AI answers in under 4 seconds. Every fact is verified by human experts before it reaches you.',          icon: MessageCircle },
 ]
 
-// ── Stats ─────────────────────────────────────────────
 const stats = [
-  { value: '30+', label: 'Government Schemes', icon: Shield },
-  { value: '24/7', label: 'Always Available', icon: Clock },
-  { value: '2', label: 'Languages Supported', icon: Globe },
-  { value: '500M+', label: 'Indians We Aim to Serve', icon: Users },
+  { value: '30+',   label: 'Government Schemes',     icon: Shield },
+  { value: '24/7',  label: 'Always Available',        icon: Clock  },
+  { value: '4',     label: 'Languages Supported',     icon: Globe  },
+  { value: '500M+', label: 'Indians We Aim to Serve', icon: Users  },
 ]
 
-// ══════════════════════════════════════════════════════
 export default function Home() {
+  const videoRef = useRef(null)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)')
+    const handle = (e) => {
+      if (!videoRef.current) return
+      if (e.matches) { videoRef.current.pause() }
+      else { videoRef.current.play().catch(() => {}) }
+    }
+    handle(mq)
+    mq.addEventListener('change', handle)
+    return () => mq.removeEventListener('change', handle)
+  }, [])
+
   return (
     <>
-      {/* ═══ HERO SECTION ═══════════════════════════════ */}
-      <section className="relative h-screen w-full overflow-hidden">
-        {/* Background Video — scale slightly to hide blurry edges */}
+      {/* === HERO === */}
+      <section className="relative w-full overflow-hidden" style={{ minHeight: '100vh' }}>
+
         <video
-          className="absolute inset-0 w-full h-full object-cover scale-105"
-          style={{ filter: 'contrast(1.04) brightness(0.92)' }}
+          ref={videoRef}
+          className="absolute inset-0 w-full h-full object-cover"
           src="/hero.mp4"
           autoPlay
           muted
           loop
           playsInline
           preload="auto"
+          aria-hidden="true"
         />
 
-        {/* Gradient overlay — heavier to mask AI video artifacts */}
-        <div className="absolute inset-0 bg-gradient-hero" />
-        <div className="absolute inset-0 bg-black/15" />
+        {/* Left gradient: permanently dark on left 45% */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(to right, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.88) 25%, rgba(0,0,0,0.55) 42%, rgba(0,0,0,0) 58%)',
+          }}
+        />
+        {/* Subtle overall tint */}
+        <div className="absolute inset-0 bg-black/20 pointer-events-none" />
 
-        {/* Content */}
-        <div className="relative z-10 h-full flex items-center">
-          <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 w-full">
-            <div className="max-w-xl">
-              {/* Eyebrow */}
-              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-1.5 mb-6">
-                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                <span className="text-white/90 text-sm font-medium">Live Now — Call Anytime</span>
+        <div className="relative z-10 flex items-center" style={{ minHeight: '100vh' }}>
+          <div className="w-full max-w-7xl mx-auto px-6 md:px-12 lg:px-20 py-24">
+            <div className="w-full md:w-[52%] lg:w-[46%]">
+
+              {/* Pill badge */}
+              <div className="inline-flex items-center gap-2 bg-black/40 backdrop-blur-sm border border-white/15 rounded-full px-4 py-1.5 mb-7">
+                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse flex-shrink-0" />
+                <span className="text-white/85 text-sm font-medium tracking-wide">Live Now \u2014 Call Anytime</span>
               </div>
 
-              {/* Static Title */}
-              <h1 className="font-sans text-5xl md:text-7xl font-extrabold text-white leading-tight mb-3">
-                VaaniSeva
+              {/* Main headline */}
+              <h1
+                className="font-extrabold text-white leading-tight tracking-tight mb-4"
+                style={{ fontSize: 'clamp(2.2rem, 5vw, 4rem)' }}
+              >
+                India&apos;s Knowledge
+                <br />
+                <span style={{ color: '#34d399' }}>Now in Every Voice</span>
               </h1>
 
-              {/* Multilingual scrolling ticker — constrained to title width */}
-              <div className="overflow-hidden mb-5" style={{ maxWidth: '100%' }}>
+              {/* Subheadline */}
+              <p
+                className="text-base md:text-lg font-medium leading-relaxed mb-6"
+                style={{ color: 'rgba(255,255,255,0.72)' }}
+              >
+                440 million Indians have no access to AI.
+                <br />
+                VaaniSeva changes that \u2014 one phone call at a time.
+              </p>
+
+              {/* Language ticker */}
+              <div
+                className="overflow-hidden rounded-lg mb-6"
+                style={{
+                  background: 'rgba(0,0,0,0.38)',
+                  border: '1px solid rgba(255,255,255,0.10)',
+                  backdropFilter: 'blur(6px)',
+                  padding: '7px 0',
+                }}
+              >
                 <div
-                  className="flex gap-8 whitespace-nowrap"
-                  style={{
-                    animation: 'tickerScroll 18s linear infinite',
-                    width: 'max-content',
-                  }}
+                  className="flex whitespace-nowrap font-hindi"
+                  style={{ animation: 'tickerScroll 28s linear infinite', width: 'max-content' }}
                 >
-                  {/* Render twice for seamless loop */}
-                  {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
+                  {[TICKER_TEXT, TICKER_TEXT].map((txt, i) => (
                     <span
                       key={i}
-                      className={`${item.font} text-sm md:text-base font-medium text-white/70 select-none`}
+                      className="text-emerald-400 text-xs font-medium"
+                      style={{ padding: '0 2.5rem', minWidth: 'max-content' }}
                     >
-                      {item.native}
-                      <span className="ml-8 text-white/20">·</span>
+                      {txt}
                     </span>
                   ))}
                 </div>
               </div>
 
-              <p className="text-xl md:text-2xl font-semibold text-white/90 mb-6">
-                Voice AI for Every Indian
-              </p>
-
-              {/* Tagline */}
-              <p className="text-base md:text-lg text-white/70 mb-8 leading-relaxed max-w-md">
-                Access information about 30+ government schemes by simply making a phone call. No smartphone needed.
-              </p>
+              {/* Trust badges */}
+              <div className="flex flex-wrap gap-x-5 gap-y-2 mb-8">
+                {[
+                  { icon: '📞', text: 'Works on ₹500 phones' },
+                  { icon: '🚫', text: 'No internet needed'    },
+                  { icon: '⚡', text: 'Answer in 4 sec'       },
+                ].map(({ icon, text }) => (
+                  <div key={text} className="flex items-center gap-1.5 text-sm font-medium" style={{ color: 'rgba(255,255,255,0.78)' }}>
+                    <span>{icon}</span>
+                    <span>{text}</span>
+                  </div>
+                ))}
+              </div>
 
               {/* CTAs */}
-              <div className="flex flex-wrap items-center gap-4">
-                <a href="tel:+12602048966" className="btn-primary text-base">
-                  <Phone size={18} />
-                  Call +1 260 204 8966
+              <div className="flex flex-wrap items-center gap-3 mb-5">
+                <a
+                  href="tel:+12602048966"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-white text-[15px] active:scale-[0.98] transition-all duration-200"
+                  style={{ background: '#10b981', boxShadow: '0 4px 20px rgba(16,185,129,0.35)' }}
+                >
+                  <Phone size={17} />
+                  Call Now \u2014 +1 260 204 8966
                 </a>
-                <Link to="/try" className="btn-ghost text-base">
+                <Link
+                  to="/try"
+                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-white text-[15px] active:scale-[0.98] transition-all duration-200 backdrop-blur-sm hover:bg-white/10"
+                  style={{ border: '2px solid rgba(255,255,255,0.38)' }}
+                >
                   Try on Web
                   <ArrowRight size={16} />
                 </Link>
               </div>
 
-              {/* Footnote */}
-              <p className="mt-6 text-xs text-white/40">
-                No smartphone needed &nbsp;·&nbsp; No internet required &nbsp;·&nbsp; Works on ₹500 phones
+              <p className="text-xs" style={{ color: 'rgba(255,255,255,0.32)' }}>
+                No smartphone needed &nbsp;\u00b7&nbsp; No internet required &nbsp;\u00b7&nbsp; Works on \u20b9500 phones
               </p>
+
             </div>
           </div>
         </div>
 
-        {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center pt-2">
-            <div className="w-1 h-2.5 bg-white/50 rounded-full" />
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce z-10">
+          <div className="w-6 h-10 border-2 border-white/25 rounded-full flex justify-center pt-2">
+            <div className="w-1 h-2.5 bg-white/40 rounded-full" />
           </div>
         </div>
       </section>
 
-      {/* ═══ STATS BAR ══════════════════════════════════ */}
+      {/* === STATS === */}
       <section className="bg-surface-secondary border-y border-gray-100">
         <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 py-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {stats.map((s) => (
               <div key={s.label} className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-accent-50 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-accent-50 rounded-xl flex items-center justify-center flex-shrink-0">
                   <s.icon size={20} className="text-accent-500" />
                 </div>
                 <div>
@@ -171,59 +200,54 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══ HOW IT WORKS ═══════════════════════════════ */}
+      {/* === HOW IT WORKS === */}
       <section id="how-it-works" className="section bg-white">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
           <div className="text-center mb-16">
             <p className="text-sm font-semibold text-accent-500 uppercase tracking-wider mb-2">Simple Process</p>
             <h2 className="section-title text-center">How It Works</h2>
             <p className="section-subtitle mx-auto mt-2">Three steps. No app downloads. No internet required.</p>
           </div>
-
-          {/* Steps */}
-          <div className="grid md:grid-cols-3 gap-8">
-            {steps.map((step, i) => (
+          <div className="relative grid md:grid-cols-3 gap-8">
+            <div
+              className="hidden md:block absolute"
+              style={{
+                top: '72px',
+                left: 'calc(16.67% + 2rem)',
+                right: 'calc(16.67% + 2rem)',
+                height: '2px',
+                background: 'linear-gradient(to right, #d1fae5, #10b981, #d1fae5)',
+              }}
+            />
+            {steps.map((step) => (
               <div key={step.num} className="relative group">
                 <div className="card text-center px-8 py-10 hover:border-accent-200 group-hover:-translate-y-1 transition-transform duration-300">
                   <div className="w-16 h-16 bg-accent-50 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-accent-100 transition-colors">
                     <step.icon size={28} className="text-accent-500" />
                   </div>
-                  <p className="text-xs font-bold text-accent-500 mb-2">STEP {step.num}</p>
+                  <p className="text-xs font-bold text-accent-500 mb-2 tracking-widest">STEP {step.num}</p>
                   <h3 className="text-lg font-bold text-content-primary mb-3">{step.title}</h3>
                   <p className="text-sm text-content-secondary leading-relaxed">{step.desc}</p>
                 </div>
-                {/* Arrow connector */}
-                {i < steps.length - 1 && (
-                  <div className="hidden md:flex absolute top-1/2 -right-4 -translate-y-1/2 z-10">
-                    <ChevronRight size={24} className="text-gray-300" />
-                  </div>
-                )}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══ SCHEMES ════════════════════════════════════ */}
+      {/* === SCHEMES === */}
       <section id="schemes" className="section bg-surface-secondary">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
           <div className="text-center mb-16">
             <p className="text-sm font-semibold text-accent-500 uppercase tracking-wider mb-2">Knowledge Base</p>
-            <h2 className="section-title text-center">Government Schemes We Cover</h2>
+            <h2 className="section-title text-center">What Can You Ask VaaniSeva?</h2>
             <p className="section-subtitle mx-auto mt-4">
-              Ask VaaniSeva about any of these schemes in Hindi or English. Get eligibility, benefits, and how to apply.
+              From crop prices to health coverage to legal rights \u2014 ask anything, in your language, right now.
             </p>
           </div>
-
-          {/* Grid */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {schemes.map((s) => (
-              <div
-                key={s.name}
-                className="card flex items-start gap-4 hover:border-accent-200 cursor-default"
-              >
+              <div key={s.name} className="card flex items-start gap-4 hover:border-accent-200 cursor-default">
                 <div className="w-11 h-11 bg-accent-50 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
                   {s.icon}
                 </div>
@@ -238,27 +262,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══ CTA BANNER ═════════════════════════════════ */}
+      {/* === CTA === */}
       <section className="bg-gradient-accent">
         <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 py-16 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
-            Try VaaniSeva Now
+            One Call. Any Language. Real Answers.
           </h2>
           <p className="text-lg text-white/80 mb-8 max-w-lg mx-auto">
-            Call from any phone or test it directly on the web — it takes just 30 seconds
+            Join 10,000+ Indians already using VaaniSeva.
+            No signup needed \u2014 just call.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <a
-              href="tel:+12602048966"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white text-accent-600 font-bold rounded-xl text-lg hover:bg-gray-50 transition-colors shadow-lg"
-            >
+            <a href="tel:+12602048966" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-accent-600 font-bold rounded-xl text-lg hover:bg-gray-50 transition-colors shadow-lg">
               <Phone size={22} />
               +1 260 204 8966
             </a>
-            <Link
-              to="/try"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 text-white font-bold rounded-xl text-lg border-2 border-white/30 hover:bg-white/20 transition-colors"
-            >
+            <Link to="/try" className="inline-flex items-center gap-2 px-8 py-4 bg-white/10 text-white font-bold rounded-xl text-lg border-2 border-white/30 hover:bg-white/20 transition-colors">
               Try on Web
               <ArrowRight size={18} />
             </Link>
@@ -266,11 +285,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ═══ FOOTER ═════════════════════════════════════ */}
+      {/* === FOOTER === */}
       <footer className="bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 py-12">
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Brand */}
             <div>
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="w-9 h-9 bg-gradient-accent rounded-lg flex items-center justify-center">
@@ -282,11 +300,10 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-sm text-content-secondary leading-relaxed">
-                AI-powered voice assistant enabling 500M+ rural Indians to access government scheme information via a simple phone call.
+                Built by Team Prayas for AI for Bharat Hackathon 2026.
+                VaaniSeva is the Voice-First AI for the other 90% of India.
               </p>
             </div>
-
-            {/* Links */}
             <div>
               <h4 className="font-semibold text-sm text-content-primary mb-3">Quick Links</h4>
               <div className="space-y-2">
@@ -295,28 +312,17 @@ export default function Home() {
                 <Link to="/try" className="block text-sm text-content-secondary hover:text-accent-500 transition-colors">Try VaaniSeva</Link>
               </div>
             </div>
-
-            {/* Hackathon */}
             <div>
               <h4 className="font-semibold text-sm text-content-primary mb-3">About</h4>
               <p className="text-sm text-content-secondary leading-relaxed">
                 Built by <strong>Team Prayas</strong> for the <strong>AI for Bharat Hackathon 2026</strong>.
               </p>
-              <p className="text-sm text-content-secondary mt-2">
-                Problem Statement 3 — Voice AI for Rural India
-              </p>
+              <p className="text-sm text-content-secondary mt-2">Problem Statement 3 \u2014 Voice AI for Rural India</p>
             </div>
           </div>
-
           <div className="mt-10 pt-6 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-content-tertiary">
-              © 2026 VaaniSeva — Team Prayas. All rights reserved.
-            </p>
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-content-tertiary">
-                Powered by AWS Bedrock + Sarvam AI + Twilio
-              </span>
-            </div>
+            <p className="text-xs text-content-tertiary">\u00a9 2026 VaaniSeva \u2014 Team Prayas. All rights reserved.</p>
+            <span className="text-xs text-content-tertiary">Powered by AWS Bedrock + Sarvam AI + Twilio</span>
           </div>
         </div>
       </footer>
