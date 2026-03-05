@@ -278,19 +278,24 @@ def handle_call_initiate(event):
     if not phone_number or not re.match(r"^\+[1-9]\d{6,14}$", phone_number):
         return cors_json_response(400, {"error": "Invalid phone number format."})
 
-    # Rate limit: max 2 calls/hour per number
-    one_hour_ago = int(_time.time()) - 3600
-    try:
-        scan = calls_table.scan(
-            FilterExpression="from_number = :phone AND #ts > :cutoff AND #src = :src",
-            ExpressionAttributeNames={"#ts": "timestamp", "#src": "status"},
-            ExpressionAttributeValues={":phone": phone_number, ":cutoff": one_hour_ago, ":src": "web-callback"},
-            Select="COUNT",
-        )
-        if scan.get("Count", 0) >= 2:
-            return cors_json_response(429, {"error": "Max 2 calls per hour. Please try again later."})
-    except Exception:
-        pass
+    # Numbers exempt from rate limiting (testers / devs)
+    WHITELIST = set(os.environ.get("RATE_LIMIT_WHITELIST", "").split(","))
+    WHITELIST.discard("")
+
+    # Rate limit: max 2 calls/hour per number (skipped for whitelisted numbers)
+    if phone_number not in WHITELIST:
+        one_hour_ago = int(_time.time()) - 3600
+        try:
+            scan = calls_table.scan(
+                FilterExpression="from_number = :phone AND #ts > :cutoff AND #src = :src",
+                ExpressionAttributeNames={"#ts": "timestamp", "#src": "status"},
+                ExpressionAttributeValues={":phone": phone_number, ":cutoff": one_hour_ago, ":src": "web-callback"},
+                Select="COUNT",
+            )
+            if scan.get("Count", 0) >= 2:
+                return cors_json_response(429, {"error": "Max 2 calls per hour. Please try again later."})
+        except Exception:
+            pass
 
     try:
         from twilio.rest import Client
