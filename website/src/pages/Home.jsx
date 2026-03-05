@@ -273,7 +273,7 @@ export default function Home() {
             No signup needed — just call.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <a href="tel:+12602048966" className="inline-flex items-center gap-2 px-8 py-4 font-bold rounded-xl text-lg text-white transition-colors shadow-lg hover:opacity-90" style={{ background: '#D4860B' }}>
+            <a href="tel:+19788309619" className="inline-flex items-center gap-2 px-8 py-4 font-bold rounded-xl text-lg text-white transition-colors shadow-lg hover:opacity-90" style={{ background: '#D4860B' }}>
               <Phone size={22} />
               +1 978 830 9619
             </a>

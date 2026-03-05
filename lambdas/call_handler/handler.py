@@ -1621,6 +1621,9 @@ def handle_poll(params):
 
     # ── Success — play answer + prompt for next question ───────────
     answer    = result.get("answer", "")
+    # Truncate long responses to prevent Sarvam TTS URL expiry before Twilio can stream it
+    if len(answer) > 800:
+        answer = answer[:800].rsplit(' ', 1)[0] + "..."
     audio_url = result.get("audio_url", "")
     follow_up = follow_ups.get(language, follow_ups["en"])
     goodbye   = goodbyes.get(language, goodbyes["en"])
