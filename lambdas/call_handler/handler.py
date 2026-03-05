@@ -283,7 +283,7 @@ def handle_call_initiate(event):
     try:
         from twilio.rest import Client
         twilio_client = Client(os.environ["TWILIO_ACCOUNT_SID"], os.environ["TWILIO_AUTH_TOKEN"])
-        twilio_phone = os.environ.get("TWILIO_PHONE_NUMBER", "+12602048966")
+        twilio_phone = os.environ.get("TWILIO_PHONE_NUMBER", "+19788309619")
         api_base = os.environ.get("API_BASE_URL", BASE_URL)
 
         # Always use the deployed production API URL for Twilio webhooks
