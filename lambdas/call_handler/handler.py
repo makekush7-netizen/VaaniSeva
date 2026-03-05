@@ -68,28 +68,28 @@ DATA_GOV_API_KEY           = os.environ.get("DATA_GOV_API_KEY", "")
 LANG_CONFIG = {
     "hi": {
         "sarvam_code": "hi-IN",
-        "sarvam_speaker": "anushka",
+        "sarvam_speaker": "arya",   # default voice
         "polly_voice": "Polly.Aditi",
         "twilio_speech_lang": "hi-IN",
         "digit": "1",
     },
     "mr": {
         "sarvam_code": "mr-IN",
-        "sarvam_speaker": "manisha",
+        "sarvam_speaker": "arya",   # arya works cross-lang
         "polly_voice": "Polly.Aditi",
         "twilio_speech_lang": "mr-IN",
         "digit": "2",
     },
     "ta": {
         "sarvam_code": "ta-IN",
-        "sarvam_speaker": "nithya",
+        "sarvam_speaker": "arya",   # arya works cross-lang
         "polly_voice": "Polly.Aditi",
         "twilio_speech_lang": "ta-IN",
         "digit": "3",
     },
     "en": {
         "sarvam_code": "en-IN",
-        "sarvam_speaker": "vidya",
+        "sarvam_speaker": "vidya",  # default English voice
         "polly_voice": "Polly.Raveena",
         "twilio_speech_lang": "en-IN",
         "digit": "4",
@@ -97,6 +97,15 @@ LANG_CONFIG = {
 }
 
 DIGIT_TO_LANG = {v["digit"]: k for k, v in LANG_CONFIG.items()}
+
+# ── Selectable voices — available to callers and web users ───
+# arya = female (Hindi/Indian), vidya = female (English-Indian), hitesh = male
+VOICE_OPTIONS = {
+    "arya":   {"name": "Arya",   "gender": "female", "digit": "1", "label_hi": "आर्या (महिला)",  "label_en": "Arya (Female)"},
+    "vidya":  {"name": "Vidya",  "gender": "female", "digit": "2", "label_hi": "विद्या (महिला)", "label_en": "Vidya (Female)"},
+    "hitesh": {"name": "Hitesh", "gender": "male",   "digit": "3", "label_hi": "हितेश (पुरुष)",  "label_en": "Hitesh (Male)"},
+}
+DIGIT_TO_VOICE = {v["digit"]: k for k, v in VOICE_OPTIONS.items()}
 
 # ── System prompt — warm, human, conversational ─────────────
 SYSTEM_PROMPT = """तुम वाणीसेवा (VaaniSeva) हो — एक गर्मजोशी से भरी, समझदार दीदी जो हर सवाल का जवाब जानती है। तुम फोन पर भी बात करती हो और वेब चैट पर भी। तुम्हारी आवाज़ एक औरत की है — हमेशा "मैं बताती हूँ", "मैं ढूँढती हूँ", "मुझे पता है" बोलो। कभी भी "बताता हूँ" या पुरुष भाषा मत बोलो।
@@ -143,20 +152,22 @@ This is the MOST IMPORTANT rule. You MUST follow the language specified in the u
 #  TTS: Sarvam AI → Amazon Polly fallback
 # ══════════════════════════════════════════════════════════════
 
-def sarvam_tts(text: str, language: str) -> str | None:
+def sarvam_tts(text: str, language: str, speaker: str = "") -> str | None:
     """
     Call Sarvam AI TTS. Uploads audio to S3, returns presigned URL (1hr).
     Returns None on any failure so caller can fall back to Polly.
     pace:1.1 for slightly faster delivery on phone calls.
+    speaker: optional override; falls back to LANG_CONFIG default.
     """
     if not SARVAM_API_KEY:
         return None
     try:
         cfg = LANG_CONFIG.get(language, LANG_CONFIG["en"])
+        resolved_speaker = speaker if speaker in VOICE_OPTIONS else cfg["sarvam_speaker"]
         payload = {
             "inputs": [text],
             "target_language_code": cfg["sarvam_code"],
-            "speaker": cfg["sarvam_speaker"],
+            "speaker": resolved_speaker,
             "model": "bulbul:v2",
             "pace": 1.1
         }
@@ -180,12 +191,13 @@ def sarvam_tts(text: str, language: str) -> str | None:
         return None
 
 
-def tts_say(target, text: str, language: str):
+def tts_say(target, text: str, language: str, speaker: str = ""):
     """
     Add TTS audio to a TwiML Gather or Response object.
     Tries Sarvam AI first (all 4 languages); falls back to Amazon Polly via Twilio builtin <Say>.
+    speaker: optional voice override (arya / vidya / hitesh).
     """
-    audio_url = sarvam_tts(text, language)
+    audio_url = sarvam_tts(text, language, speaker=speaker)
     if audio_url:
         target.play(audio_url)   # Sarvam audio from S3
     else:
@@ -251,6 +263,8 @@ def lambda_handler(event, context):
 
     if "/incoming" in path:
         return handle_incoming(params)
+    elif "/voice-select" in path:
+        return handle_voice_select(params)
     elif "/language" in path:
         return handle_language_select(params)
     elif "/poll" in path:
@@ -448,9 +462,10 @@ def handle_chat(event):
     except (json.JSONDecodeError, TypeError):
         return cors_json_response(400, {"error": "Invalid JSON body"})
 
-    query = body.get("query", "").strip()
-    language = body.get("language", "hi")
+    query      = body.get("query", "").strip()
+    language   = body.get("language", "hi")
     session_id = body.get("session_id", "")
+    voice      = body.get("voice", "")  # optional: arya / vidya / hitesh
 
     if not query:
         return cors_json_response(400, {"error": "Empty query"})
@@ -472,13 +487,14 @@ def handle_chat(event):
     if session_id:
         log_query(session_id, query, answer, language)
 
-    # Generate TTS audio
-    audio_url = sarvam_tts(answer, language)
+    # Generate TTS audio with chosen voice
+    audio_url = sarvam_tts(answer, language, speaker=voice)
 
     return cors_json_response(200, {
         "answer": answer,
         "audio_url": audio_url or "",
         "language": language,
+        "voice": voice or LANG_CONFIG.get(language, LANG_CONFIG["en"])["sarvam_speaker"],
     })
 
 
@@ -1296,6 +1312,7 @@ def handle_incoming(params):
     call_sid    = params.get("CallSid", str(uuid.uuid4()))
     from_number = params.get("From", "unknown")
     lang_param  = params.get("lang", "").strip()  # Browser calls pre-select language
+    voice_param = params.get("voice", "").strip()  # Browser calls pre-select voice
 
     # Look up registered user by phone number for personalization
     caller_profile = _lookup_user_by_phone(from_number)
@@ -1311,15 +1328,16 @@ def handle_incoming(params):
         "from_number": from_number,
         "status": "in-progress",
         "language": language,
+        "voice_speaker": voice_param if voice_param in VOICE_OPTIONS else "",
         "queries_count": 0,
         "conversation_history": [],
         "user_id": caller_profile.get("user_id", "") if caller_profile else "",
         "source": "browser" if lang_param else "phone",
     })
 
-    # Browser call: skip language menu, greet in chosen language and go to gather
+    # Browser call: skip language menu, go to voice select (or straight to gather if voice pre-set)
     if lang_param and lang_param in LANG_CONFIG:
-        return _browser_call_welcome(call_sid, language)
+        return _browser_call_welcome(call_sid, language, voice=voice_param)
 
     response = VoiceResponse()
     action_url = f"{BASE_URL}/voice/language" if BASE_URL else "/voice/language"
@@ -1346,40 +1364,39 @@ def handle_incoming(params):
     return twiml_response(response)
 
 
-def _browser_call_welcome(call_sid: str, language: str):
-    """Skip DTMF menu for browser calls — greet in chosen language and open gather."""
-    greetings = {
-        "hi": "नमस्ते! मैं वाणीसेवा हूँ, आपकी अपनी दीदी। बताइए, आज मैं आपकी किस बात में मदद करूँ?",
-        "mr": "नमस्कार! मी वाणीसेवा, तुमची ताई. बोला, आज मी तुम्हाला कशात मदत करू?",
-        "ta": "வணக்கம்! நான் வாணீசேவா, உங்கள் அக்கா. சொல்லுங்க, இன்று நான் எப்படி உதவ வேண்டும்?",
-        "en": "Hello! I'm VaaniSeva, your friendly helper. Tell me, how can I help you today?",
-    }
-    fallbacks = {
-        "hi": "अरे, आवाज़ नहीं आई। एक बार फिर से बोलिए ना?",
-        "mr": "अरे, ऐकू आलं नाही. पुन्हा एकदा सांगा ना?",
-        "ta": "கேட்கவில்லை. மறுபடியும் சொல்லுங்க?",
-        "en": "Oh, I didn't catch that. Could you say that again?",
-    }
+def _browser_call_welcome(call_sid: str, language: str, voice: str = ""):
+    """Skip DTMF menu for browser calls — go to voice select then gather."""
+    if voice and voice in VOICE_OPTIONS:
+        # Web pre-selected voice — skip voice menu, greet and go straight to gather
+        greetings = {
+            "hi": "नमस्ते! मैं वाणीसेवा हूँ, आपकी अपनी दीदी। बताइए, आज मैं आपकी किस बात में मदद करूँ?",
+            "mr": "नमस्कार! मी वाणीसेवा, तुमची ताई. बोला, आज मी तुम्हाला कशात मदत करू?",
+            "ta": "வணக்கம்! நான் வாணீசேவா, உங்கள் அக்கா. சொல்லுங்க, இன்று நான் எப்படி உதவ வேண்டும்?",
+            "en": "Hello! I'm VaaniSeva, your friendly helper. Tell me, how can I help you today?",
+        }
+        fallbacks = {
+            "hi": "अरे, आवाज़ नहीं आई। एक बार फिर से बोलिए ना?",
+            "mr": "अरे, ऐकू आलं नाही. पुन्हा एकदा सांगा ना?",
+            "ta": "கேட்கவில்லை. மறுபடியும் சொல்லுங்க?",
+            "en": "Oh, I didn't catch that. Could you say that again?",
+        }
+        cfg        = LANG_CONFIG[language]
+        gather_url = f"{BASE_URL}/voice/gather?lang={language}&voice={voice}" if BASE_URL else f"/voice/gather?lang={language}&voice={voice}"
+        response = VoiceResponse()
+        gather   = Gather(
+            input="speech", action=gather_url, method="POST",
+            language=cfg["twilio_speech_lang"], speech_timeout="auto", timeout=15,
+        )
+        tts_say(gather, greetings.get(language, greetings["en"]), language, speaker=voice)
+        response.append(gather)
+        tts_say(response, fallbacks.get(language, fallbacks["en"]), language, speaker=voice)
+        return twiml_response(response)
 
-    cfg        = LANG_CONFIG[language]
-    gather_url = f"{BASE_URL}/voice/gather?lang={language}" if BASE_URL else f"/voice/gather?lang={language}"
-
-    response = VoiceResponse()
-    gather   = Gather(
-        input="speech",
-        action=gather_url,
-        method="POST",
-        language=cfg["twilio_speech_lang"],
-        speech_timeout="auto",
-        timeout=15,
-    )
-    tts_say(gather, greetings.get(language, greetings["en"]), language)
-    response.append(gather)
-    tts_say(response, fallbacks.get(language, fallbacks["en"]), language)
-    return twiml_response(response)
+    # No voice pre-selected — show voice selection menu
+    return _play_voice_select_menu(call_sid, language)
 
 
-# ── Step 2: Language selected ────────────────────────────────
+# ── Step 2: Language selected → go to voice selection ───────
 def handle_language_select(params):
     call_sid = params.get("CallSid", "")
     digit    = params.get("Digits", "2")
@@ -1399,12 +1416,63 @@ def handle_language_select(params):
             logger.warning(f"DynamoDB lang update failed: {e}")
     threading.Thread(target=_update_lang, daemon=True).start()
 
-    # Open-ended question in the selected language
+    # After language, ask user to pick a voice
+    return _play_voice_select_menu(call_sid, language)
+
+
+def _play_voice_select_menu(call_sid: str, language: str):
+    """Play the voice selection IVR menu (1=Arya, 2=Vidya, 3=Hitesh)."""
     prompts = {
-        "hi": "हाँ जी, बताइए आपका सवाल! मैं सुन रही हूँ।",
-        "mr": "हो, बोला तुमचा प्रश्न! मी ऐकतेय.",
-        "ta": "சொல்லுங்க, நான் கேட்கிறேன்!",
-        "en": "Go ahead, I'm listening! What would you like to know?",
+        "hi": "अब आवाज़ चुनिए। आर्या के लिए 1 दबाएं, विद्या के लिए 2, और हितेश के लिए 3 दबाएं।",
+        "mr": "आता आवाज निवडा. आर्यासाठी 1, विद्यासाठी 2, आणि हितेशसाठी 3 दाबा.",
+        "ta": "இப்போது குரலை தேர்வு செய்யுங்கள். ஆர்யாவிற்கு 1, வித்யாவிற்கு 2, ஹிதேஷிற்கு 3 அழுத்துங்கள்.",
+        "en": "Now choose a voice. Press 1 for Arya, 2 for Vidya, or 3 for Hitesh.",
+    }
+    voice_select_url = f"{BASE_URL}/voice/voice-select?lang={language}" if BASE_URL else f"/voice/voice-select?lang={language}"
+    cfg = LANG_CONFIG.get(language, LANG_CONFIG["en"])
+    response = VoiceResponse()
+    gather = Gather(num_digits=1, action=voice_select_url, method="POST", timeout=8)
+    # Use default lang voice to announce menu
+    gather.say(prompts.get(language, prompts["en"]), voice=cfg["polly_voice"])
+    response.append(gather)
+    # No digit pressed — default to arya
+    response.redirect(f"{voice_select_url}&Digits=1", method="POST")
+    return twiml_response(response)
+
+
+# ── Step 2b: Voice selected ───────────────────────────────────
+def handle_voice_select(params):
+    call_sid = params.get("CallSid", "")
+    language = params.get("lang", "hi")
+    digit    = params.get("Digits", "1")
+    voice    = DIGIT_TO_VOICE.get(digit, "arya")
+
+    # Persist chosen voice on the call record
+    def _update_voice():
+        try:
+            ts = get_call_timestamp(call_sid)
+            calls_table.update_item(
+                Key={"call_id": call_sid, "timestamp": ts},
+                UpdateExpression="SET voice_speaker = :v",
+                ExpressionAttributeValues={":v": voice}
+            )
+        except Exception as e:
+            logger.warning(f"DynamoDB voice update failed: {e}")
+    threading.Thread(target=_update_voice, daemon=True).start()
+
+    confirmations = {
+        "hi":   {"arya": "ठीक है! आर्या की आवाज़ में बात करेंगे। बताइए आपका सवाल!",
+                 "vidya": "ठीक है! विद्या की आवाज़ में बात करेंगे। बताइए आपका सवाल!",
+                 "hitesh": "ठीक है! हितेश की आवाज़ में बात करेंगे। बताइए आपका सवाल!"},
+        "mr":   {"arya": "ठीक आहे! आर्याच्या आवाजात बोलू. बोला तुमचा प्रश्न!",
+                 "vidya": "ठीक आहे! विद्याच्या आवाजात बोलू. बोला तुमचा प्रश्न!",
+                 "hitesh": "ठीक आहे! हितेशच्या आवाजात बोलू. बोला तुमचा प्रश्न!"},
+        "ta":   {"arya": "சரி! ஆர்யா குரலில் பேசுவோம். கேளுங்கள்!",
+                 "vidya": "சரி! வித்யா குரலில் பேசுவோம். கேளுங்கள்!",
+                 "hitesh": "சரி! ஹிதேஷ் குரலில் பேசுவோம். கேளுங்கள்!"},
+        "en":   {"arya": "Got it! You'll hear Arya's voice. Go ahead, ask your question!",
+                 "vidya": "Got it! You'll hear Vidya's voice. Go ahead, ask your question!",
+                 "hitesh": "Got it! You'll hear Hitesh's voice. Go ahead, ask your question!"},
     }
     fallbacks = {
         "hi": "कुछ सुनाई नहीं दिया। दोबारा कॉल करके बात कीजिए ना।",
@@ -1413,10 +1481,9 @@ def handle_language_select(params):
         "en": "I couldn't hear you. Please try calling again.",
     }
 
-    cfg        = LANG_CONFIG[language]
-    prompt     = prompts[language]
-    fallback   = fallbacks[language]
-    gather_url = f"{BASE_URL}/voice/gather?lang={language}" if BASE_URL else f"/voice/gather?lang={language}"
+    cfg = LANG_CONFIG.get(language, LANG_CONFIG["en"])
+    confirmation = confirmations.get(language, confirmations["en"]).get(voice, "Let's go! Ask your question.")
+    gather_url   = f"{BASE_URL}/voice/gather?lang={language}&voice={voice}" if BASE_URL else f"/voice/gather?lang={language}&voice={voice}"
 
     response = VoiceResponse()
     gather   = Gather(
@@ -1427,10 +1494,20 @@ def handle_language_select(params):
         speech_timeout="auto",
         timeout=10
     )
-    tts_say(gather, prompt, language)
+    tts_say(gather, confirmation, language, speaker=voice)
     response.append(gather)
-    tts_say(response, fallback, language)
+    tts_say(response, fallbacks.get(language, fallbacks["en"]), language, speaker=voice)
     return twiml_response(response)
+
+
+def _get_call_voice(call_sid: str, fallback_voice: str = "arya") -> str:
+    """Read the caller's chosen voice from DynamoDB."""
+    try:
+        ts = get_call_timestamp(call_sid)
+        item = calls_table.get_item(Key={"call_id": call_sid, "timestamp": ts}).get("Item", {})
+        return item.get("voice_speaker", fallback_voice)
+    except Exception:
+        return fallback_voice
 
 
 # ── Step 3: User spoke — kick off async processing ──────────
@@ -1443,8 +1520,16 @@ def handle_gather(params):
     call_sid    = params.get("CallSid", "")
     speech_text = params.get("SpeechResult", "")
     language    = params.get("lang", "hi")
+    voice       = params.get("voice", "") or _get_call_voice(call_sid)
 
-    logger.info(f"Speech: '{speech_text}' | Lang: {language} | Call: {call_sid}")
+    logger.info(f"Speech: '{speech_text}' | Lang: {language} | Voice: {voice} | Call: {call_sid}")
+
+    # Mid-call voice switch: user says "change voice" / "आवाज़ बदलो" etc.
+    change_triggers = ["change voice", "change my voice", "different voice",
+                       "आवाज़ बदलो", "आवाज बदलो", "दूसरी आवाज़",
+                       "आवाज बदल", "voice change", "குரல் மாற்று", "आवाज बदलवा"]
+    if speech_text and any(t in speech_text.lower() for t in change_triggers):
+        return _play_voice_select_menu(call_sid, language)
 
     if not speech_text:
         return ask_again(language)
@@ -1458,6 +1543,7 @@ def handle_gather(params):
             "timestamp": 0,
             "status": "processing",
             "lang": language,
+            "voice": voice,
             "ttl": int(time.time()) + 300,  # auto-expire in 5 min
         })
     except Exception as e:
@@ -1480,7 +1566,7 @@ def handle_gather(params):
                 logger.warning(f"Profile lookup for call {call_sid}: {pe}")
 
             answer    = rag_pipeline(speech_text, language, call_sid, profile_context=profile_context)
-            audio_url = sarvam_tts(answer, language) or ""
+            audio_url = sarvam_tts(answer, language, speaker=voice) or ""
 
             calls_table.put_item(Item={
                 "call_id": job_key,
@@ -1510,13 +1596,13 @@ def handle_gather(params):
 
     # ── Respond instantly with a "thinking" voice line ─────────────
     thinking_msgs = {
-        "hi": "एक पल रुकिए, मैं आपके लिए जानकारी ढूंढ रहा हूँ।",
-        "mr": "एक क्षण थांबा, मी तुमच्यासाठी माहिती शोधत आहे।",
+        "hi": "एक पल रुकिए, मैं आपके लिए जानकारी ढूंढ रही हूँ।",
+        "mr": "एक क्षण थांबा, मी तुमच्यासाठी माहिती शोधत आहे.",
         "ta": "ஒரு நிமிடம் காத்திருங்கள், உங்களுக்காக தகவல் தேடுகிறேன்.",
         "en": "Please wait a moment while I find that information for you.",
     }
     cfg      = LANG_CONFIG.get(language, LANG_CONFIG["en"])
-    poll_url = f"{BASE_URL}/voice/poll?lang={language}" if BASE_URL else f"/voice/poll?lang={language}"
+    poll_url = f"{BASE_URL}/voice/poll?lang={language}&voice={voice}" if BASE_URL else f"/voice/poll?lang={language}&voice={voice}"
 
     response = VoiceResponse()
     # Use Polly <Say> — zero generation time, user hears voice immediately
@@ -1536,6 +1622,7 @@ def handle_poll(params):
     call_sid = params.get("CallSid", "")
     language = params.get("lang", "hi")
     attempt  = int(params.get("attempt", "0"))
+    voice    = params.get("voice", "") or _get_call_voice(call_sid)
 
     job_key = f"job#{call_sid}"
     cfg     = LANG_CONFIG.get(language, LANG_CONFIG["en"])
@@ -1559,7 +1646,7 @@ def handle_poll(params):
         "en": "I'm sorry, I had trouble with that. Please ask your question again.",
     }
 
-    gather_url = f"{BASE_URL}/voice/gather?lang={language}" if BASE_URL else f"/voice/gather?lang={language}"
+    gather_url = f"{BASE_URL}/voice/gather?lang={language}&voice={voice}" if BASE_URL else f"/voice/gather?lang={language}&voice={voice}"
     response   = VoiceResponse()
 
     # Poll DynamoDB every ~1.5 s for up to 10 s
@@ -1624,6 +1711,8 @@ def handle_poll(params):
     # Truncate long responses to prevent Sarvam TTS URL expiry before Twilio can stream it
     if len(answer) > 800:
         answer = answer[:800].rsplit(' ', 1)[0] + "..."
+    # Use the voice stored in the job record (ensures consistency even on retry hops)
+    stored_voice = result.get("voice", voice)
     audio_url = result.get("audio_url", "")
     follow_up = follow_ups.get(language, follow_ups["en"])
     goodbye   = goodbyes.get(language, goodbyes["en"])
@@ -1634,12 +1723,12 @@ def handle_poll(params):
     )
     if audio_url:
         gather.play(audio_url)
-        gather.say(follow_up, voice=cfg["polly_voice"])
+        tts_say(gather, follow_up, language, speaker=stored_voice)
     else:
         # Sarvam TTS unavailable — fall back to Polly for full answer
         gather.say(f"{answer} {follow_up}", voice=cfg["polly_voice"])
     response.append(gather)
-    response.say(goodbye, voice=cfg["polly_voice"])
+    tts_say(response, goodbye, language, speaker=stored_voice)
     return twiml_response(response)
 
 

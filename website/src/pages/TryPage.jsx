@@ -13,6 +13,13 @@ export function CallMeBack({ compact = false }) {
   const [phone, setPhone] = useState('')
   const [status, setStatus] = useState('idle') // idle | sending | success | error
   const [errorMsg, setErrorMsg] = useState('')
+  const [voice, setVoice] = useState('arya')
+
+  const callbackVoices = [
+    { code: 'arya',   label: 'Arya',   icon: '👩', hint: 'Female · Hindi' },
+    { code: 'vidya',  label: 'Vidya',  icon: '👩', hint: 'Female · EN' },
+    { code: 'hitesh', label: 'Hitesh', icon: '👨', hint: 'Male · Hindi' },
+  ]
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -32,7 +39,7 @@ export function CallMeBack({ compact = false }) {
       const res = await fetch(`${API_BASE}/call/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number: fullNumber }),
+        body: JSON.stringify({ phone_number: fullNumber, voice }),
       })
 
       const data = await res.json()
@@ -100,6 +107,30 @@ export function CallMeBack({ compact = false }) {
             className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-content-primary bg-white focus:border-accent-500 focus:ring-1 focus:ring-accent-500 outline-none transition-colors font-mono text-lg"
             maxLength={15}
           />
+        </div>
+      </div>
+
+      {/* Voice Picker */}
+      <div>
+        <label className="block text-sm font-medium text-content-primary mb-1.5">
+          Preferred Voice <span className="text-content-secondary text-xs">— आवाज़ चुनें</span>
+        </label>
+        <div className="flex gap-2">
+          {callbackVoices.map(v => (
+            <button
+              key={v.code}
+              type="button"
+              onClick={() => setVoice(v.code)}
+              className={`flex-1 flex flex-col items-center py-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                voice === v.code
+                  ? 'border-amber-400 bg-amber-50 text-amber-700 shadow-sm'
+                  : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-amber-300 hover:text-amber-600'
+              }`}
+            >
+              <span>{v.icon} {v.label}</span>
+              <span className="text-[9px] font-normal opacity-60 mt-0.5">{v.hint}</span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -203,6 +234,7 @@ function saveQuota(usedSeconds) {
 
 function VoiceChat() {
   const [language, setLanguage]       = useState('hi')
+  const [voice, setVoice]             = useState('arya')
   const [callStatus, setCallStatus]   = useState('idle')
   const [isMuted, setIsMuted]         = useState(false)
   const [duration, setDuration]       = useState(0)
@@ -227,6 +259,12 @@ function VoiceChat() {
     { code: 'mr', label: 'मराठी', hint: 'मराठीत बोला' },
     { code: 'ta', label: 'தமிழ்', hint: 'தமிழில் பேசுங்கள்' },
     { code: 'en', label: 'English', hint: 'Speak in English' },
+  ]
+
+  const voices = [
+    { code: 'arya',   label: 'Arya',   icon: '👩', hint: 'Female · Hindi' },
+    { code: 'vidya',  label: 'Vidya',  icon: '👩', hint: 'Female · EN' },
+    { code: 'hitesh', label: 'Hitesh', icon: '👨', hint: 'Male · Hindi' },
   ]
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
@@ -290,7 +328,7 @@ function VoiceChat() {
       device.on('error', (e) => { setError(e.message || 'Device error'); setCallStatus('error'); cleanupCall() })
       deviceRef.current = device
 
-      const call = await device.connect({ params: { lang: language } })
+      const call = await device.connect({ params: { lang: language, voice } })
       callRef.current = call
 
       call.on('accept', () => {
@@ -357,7 +395,7 @@ function VoiceChat() {
       const res  = await fetch(`${API_BASE}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, language, session_id: sessionIdRef.current }),
+        body: JSON.stringify({ query, language, session_id: sessionIdRef.current, voice }),
       })
       const data = await res.json()
       setMessages(prev => [...prev, { role: 'assistant', text: data.answer || '…', audioUrl: data.audio_url, ts: Date.now() }])
@@ -434,7 +472,7 @@ function VoiceChat() {
     <div className="flex flex-col items-center">
 
       {/* Language Tabs */}
-      <div className="flex bg-gray-100 rounded-2xl p-1 mb-6 w-full max-w-sm">
+      <div className="flex bg-gray-100 rounded-2xl p-1 mb-3 w-full max-w-sm">
         {languages.map(l => (
           <button
             key={l.code}
@@ -449,6 +487,33 @@ function VoiceChat() {
             <span className={l.code !== 'en' ? 'font-hindi' : ''}>{l.label}</span>
           </button>
         ))}
+      </div>
+
+      {/* Voice Selector */}
+      <div className="w-full max-w-sm mb-6">
+        <p className="text-[10px] text-gray-400 text-center mb-1.5 tracking-wide uppercase">Choose Voice</p>
+        <div className="flex bg-gray-100 rounded-2xl p-1">
+          {voices.map(v => (
+            <button
+              key={v.code}
+              onClick={() => setVoice(v.code)}
+              disabled={isOnCall || isConnecting}
+              className={`flex-1 flex flex-col items-center py-2 rounded-xl text-xs font-semibold transition-all disabled:opacity-40 ${
+                voice === v.code
+                  ? 'bg-white text-amber-700 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <span>{v.icon} {v.label}</span>
+              <span className="text-[9px] font-normal opacity-60 mt-0.5">{v.hint}</span>
+            </button>
+          ))}
+        </div>
+        {isOnCall && (
+          <p className="text-[10px] text-amber-500 text-center mt-1">
+            Say "change voice" / "आवाज़ बदलो" to switch mid-call
+          </p>
+        )}
       </div>
 
       {/* ── Quota-exhausted lock screen ── */}

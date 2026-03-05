@@ -261,6 +261,10 @@ def create_api_gateway(lambda_arn):
     add_post_method(poll_id,     "/voice/poll")
     add_options_method(poll_id,  "/voice/poll")
 
+    voice_select_id = get_or_create_resource(voice_id, "voice-select")
+    add_post_method(voice_select_id, "/voice/voice-select")
+    add_options_method(voice_select_id, "/voice/voice-select")
+
     # Task 1A — /voice/transcribe-token (GET) and /voice/transcribe (POST)
     transcribe_token_id = get_or_create_resource(voice_id, "transcribe-token")
     transcribe_id       = get_or_create_resource(voice_id, "transcribe")
