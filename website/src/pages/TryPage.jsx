@@ -3,6 +3,7 @@ import { Phone, PhoneCall, PhoneOff, Mic, MicOff, Loader2, ArrowLeft, Send, Volu
 import { Link } from 'react-router-dom'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_BASE || 'http://localhost:8000'
+const DEV_MODE = import.meta.env.VITE_DEV_MODE === 'true' || import.meta.env.DEV
 
 // ══════════════════════════════════════════════════════
 //  SECTION 1: Call Me Back
@@ -182,7 +183,7 @@ function DialerKey({ digit, sub, onPress, active }) {
 }
 
 // ── Daily-quota helpers (localStorage, no login required) ──────────────────
-const DAILY_LIMIT_SEC = 600    // 10 min / day
+const DAILY_LIMIT_SEC = 99999    // no limit — open for judges and testers
 const LS_KEY          = 'vaaniseva_voice_usage'
 
 function loadQuota() {
