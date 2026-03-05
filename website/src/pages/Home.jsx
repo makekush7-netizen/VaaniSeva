@@ -154,7 +154,7 @@ export default function Home() {
                   style={{ background: '#D4860B', boxShadow: '0 4px 20px rgba(212,134,11,0.40)' }}
                 >
                   <Phone size={17} />
-                  Call Now — +1 260 204 8966
+                  Call Now — +1 978 830 9619
                 </a>
                 <Link
                   to="/try"
@@ -275,7 +275,7 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-4">
             <a href="tel:+12602048966" className="inline-flex items-center gap-2 px-8 py-4 font-bold rounded-xl text-lg text-white transition-colors shadow-lg hover:opacity-90" style={{ background: '#D4860B' }}>
               <Phone size={22} />
-              +1 260 204 8966
+              +1 978 830 9619
             </a>
             <Link to="/try" className="inline-flex items-center gap-2 px-8 py-4 text-white font-bold rounded-xl text-lg hover:bg-white/10 transition-colors" style={{ border: '2px solid #D4860B' }}>
               Try on Web

@@ -150,7 +150,7 @@ def lambda_handler(event, context):
         # Friendly error messages
         if "unverified" in error_msg.lower():
             return cors_response(400, {
-                "error": "This number is not verified on our trial account. Please call us directly at +1 260 204 8966."
+                "error": "This number is not verified on our trial account. Please call us directly at +1 978 830 9619."
             })
         elif "invalid" in error_msg.lower() or "not a valid" in error_msg.lower():
             return cors_response(400, {
@@ -158,5 +158,5 @@ def lambda_handler(event, context):
             })
         else:
             return cors_response(500, {
-                "error": "Failed to initiate call. Please try again or call us directly at +1 260 204 8966."
+                "error": "Failed to initiate call. Please try again or call us directly at +1 978 830 9619."
             })

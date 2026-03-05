@@ -7,6 +7,9 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
 import Pricing from './pages/Pricing'
+import DevConsolePage from './pages/DevConsolePage'
+import AdminPage from './pages/AdminPage'
+import PhoneSimulatorPage from './pages/PhoneSimulatorPage'
 import VaaniWidget from './components/VaaniAgent/VaaniWidget'
 import { AuthProvider } from './context/AuthContext'
 
@@ -26,6 +29,10 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/pricing" element={<Pricing />} />
+              {/* Dev tools — not in main nav */}
+              <Route path="/dev" element={<DevConsolePage />} />
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/sim" element={<PhoneSimulatorPage />} />
             </Routes>
           </main>
 

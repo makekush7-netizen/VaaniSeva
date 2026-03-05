@@ -93,6 +93,11 @@ def deploy_lambda(zip_path, role_arn):
         "BEDROCK_EMBEDDING_MODEL_ID": os.environ["BEDROCK_EMBEDDING_MODEL_ID"],
         "TWILIO_ACCOUNT_SID":       os.environ["TWILIO_ACCOUNT_SID"],
         "TWILIO_AUTH_TOKEN":        os.environ["TWILIO_AUTH_TOKEN"],
+        "TWILIO_PHONE_NUMBER":      os.environ.get("TWILIO_PHONE_NUMBER", ""),
+        "TWILIO_API_KEY_SID":       os.environ.get("TWILIO_API_KEY_SID", ""),
+        "TWILIO_API_KEY_SECRET":    os.environ.get("TWILIO_API_KEY_SECRET", ""),
+        "TWILIO_TWIML_APP_SID":     os.environ.get("TWILIO_TWIML_APP_SID", ""),
+        "API_BASE_URL":             os.environ.get("API_BASE_URL", ""),
         "BHASHINI_USER_ID":         os.environ.get("BHASHINI_USER_ID", ""),
         "BHASHINI_API_KEY":         os.environ.get("BHASHINI_API_KEY", ""),
         "SARVAM_API_KEY":            os.environ.get("SARVAM_API_KEY", ""),
@@ -223,15 +228,54 @@ def create_api_gateway(lambda_arn):
         )
         print(f"    ✓ GET {path}")
 
-    # Create /voice → /voice/incoming, /voice/language, /voice/gather
+    def add_any_method(resource_id, path):
+        """Add ANY method (catches GET/POST/PUT/DELETE/PATCH) pointing to Lambda."""
+        try:
+            apigw_client.put_method(
+                restApiId=api_id, resourceId=resource_id,
+                httpMethod="ANY", authorizationType="NONE"
+            )
+        except apigw_client.exceptions.ConflictException:
+            pass
+        apigw_client.put_integration(
+            restApiId=api_id, resourceId=resource_id, httpMethod="ANY",
+            type="AWS_PROXY",
+            integrationHttpMethod="POST",
+            uri=f"arn:aws:apigateway:{AWS_REGION}:lambda:path/2015-03-31/functions/{lambda_arn}/invocations"
+        )
+        print(f"    ✓ ANY {path}")
+
+    # Create /voice → /voice/incoming, /voice/language, /voice/gather, /voice/token
     voice_id    = get_or_create_resource(root_id, "voice")
     incoming_id = get_or_create_resource(voice_id, "incoming")
     language_id = get_or_create_resource(voice_id, "language")
     gather_id   = get_or_create_resource(voice_id, "gather")
+    token_id    = get_or_create_resource(voice_id, "token")
+    poll_id     = get_or_create_resource(voice_id, "poll")
 
     add_post_method(incoming_id, "/voice/incoming")
     add_post_method(language_id, "/voice/language")
     add_post_method(gather_id,   "/voice/gather")
+    add_get_method(token_id,     "/voice/token")
+    add_options_method(token_id, "/voice/token")
+    add_post_method(poll_id,     "/voice/poll")
+    add_options_method(poll_id,  "/voice/poll")
+
+    # Task 1A — /voice/transcribe-token (GET) and /voice/transcribe (POST)
+    transcribe_token_id = get_or_create_resource(voice_id, "transcribe-token")
+    transcribe_id       = get_or_create_resource(voice_id, "transcribe")
+    add_get_method(transcribe_token_id,     "/voice/transcribe-token")
+    add_options_method(transcribe_token_id, "/voice/transcribe-token")
+    add_post_method(transcribe_id,          "/voice/transcribe")
+    add_options_method(transcribe_id,       "/voice/transcribe")
+
+    # Task 1B — /admin and /admin/{proxy+} (catches all admin sub-routes)
+    admin_id = get_or_create_resource(root_id, "admin")
+    admin_proxy_id = get_or_create_resource(admin_id, "{proxy+}")
+    add_any_method(admin_id,       "/admin")
+    add_options_method(admin_id,   "/admin")
+    add_any_method(admin_proxy_id, "/admin/{proxy+}")
+    add_options_method(admin_proxy_id, "/admin/{proxy+}")
 
     # Create /chat
     chat_id = get_or_create_resource(root_id, "chat")

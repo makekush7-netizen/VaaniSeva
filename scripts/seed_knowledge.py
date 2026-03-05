@@ -3349,6 +3349,835 @@ EXTRA_SECTIONS = [
             "ப: மாவட்ட வேளாண் அதிகாரியை தொடர்பு கொள்ளுங்கள் அல்லது 1800-180-1551 அழைக்கவும்."
         ),
     },
+
+    # ════════════════════════════════════════════════════════════════════
+    # TASK 1C – NEW SEED DATA: 5 categories
+    # 1. Emergency Helplines  2. Government Schemes extras
+    # 3. Medical Emergencies  4. Legal Rights  5. Agriculture extras
+    # ════════════════════════════════════════════════════════════════════
+
+    # ── 1. EMERGENCY HELPLINES ───────────────────────────────────────────
+    {
+        "scheme_id": "emergency-helplines",
+        "section_id": "overview",
+        "category": "emergency",
+        "name_en": "Emergency Helpline Numbers India",
+        "name_hi": "आपातकालीन हेल्पलाइन नंबर भारत",
+        "text_en": (
+            "Important emergency helpline numbers in India:\n"
+            "Police: 100 (report crime, theft, violence, accident)\n"
+            "Ambulance: 108 (free, available 24×7, for medical emergencies)\n"
+            "Fire: 101 (fire rescue)\n"
+            "Disaster / National Emergency: 112 (single number, connects to police, ambulance, fire)\n"
+            "Women Helpline: 1091 (domestic violence, harassment, rescue)\n"
+            "Women in Distress (24hr): 181\n"
+            "Child Helpline: 1098 (Childline, free, 24×7, for children in crisis)\n"
+            "Senior Citizen Helpline: 14567 (Elder-Line, for abuse, support)\n"
+            "Road Accident Emergency: 1073 (highway patrol, accident reporting)\n"
+            "Mental Health (iCall): 9152987821 (Monday-Saturday, 8am-10pm)\n"
+            "Vandrevala Foundation (mental health, 24hr): 1860-2662-345\n"
+            "PM-Kisan Helpline: 155261 (farmer benefit queries)\n"
+            "Kisan Call Centre (farm advice): 1800-180-1551 (toll-free, daily 6am-10pm)\n"
+            "Ayushman Bharat Health: 14555\n"
+            "Ration / Food: 1967\n"
+            "Anti-Corruption (CVC): 1964\n"
+            "COVID / Health: 1075"
+        ),
+        "text_hi": (
+            "भारत के महत्वपूर्ण आपातकालीन हेल्पलाइन नंबर:\n"
+            "पुलिस: 100 (अपराध, चोरी, हिंसा, दुर्घटना की सूचना)\n"
+            "एम्बुलेंस: 108 (मुफ्त, 24×7, चिकित्सा आपातकाल के लिए)\n"
+            "अग्निशमन: 101 (आग बुझाने)\n"
+            "राष्ट्रीय आपातकाल: 112 (एकल नंबर - पुलिस, एंबुलेंस, अग्नि)\n"
+            "महिला हेल्पलाइन: 1091 (घरेलू हिंसा, उत्पीड़न, बचाव)\n"
+            "संकट में महिलाएं (24 घंटे): 181\n"
+            "बाल हेल्पलाइन: 1098 (चाइल्डलाइन, मुफ्त, 24×7, संकट में बच्चों के लिए)\n"
+            "वरिष्ठ नागरिक हेल्पलाइन: 14567 (बुजुर्गों के लिए, दुर्व्यवहार, सहायता)\n"
+            "सड़क दुर्घटना: 1073\n"
+            "मानसिक स्वास्थ्य (iCall): 9152987821 (सोमवार-शनिवार, सुबह 8 से रात 10)\n"
+            "वांड्रेवाला फाउंडेशन (मानसिक स्वास्थ्य, 24 घंटे): 1860-2662-345\n"
+            "पीएम किसान हेल्पलाइन: 155261\n"
+            "किसान कॉल सेंटर (खेती सलाह): 1800-180-1551 (टोल फ्री, प्रतिदिन सुबह 6 से रात 10)\n"
+            "आयुष्मान भारत: 14555\n"
+            "राशन: 1967\n"
+            "भ्रष्टाचार विरोधी (CVC): 1964"
+        ),
+        "text_mr": (
+            "भारतातील महत्त्वाचे आपत्कालीन हेल्पलाइन नंबर:\n"
+            "पोलीस: 100 (गुन्हे, चोरी, हिंसा, अपघात)\n"
+            "रुग्णवाहिका: 108 (मोफत, 24×7, वैद्यकीय आपत्कालीन)\n"
+            "अग्निशमन: 101\n"
+            "राष्ट्रीय आपत्कालीन: 112 (एकच नंबर - पोलीस, रुग्णवाहिका, अग्नि)\n"
+            "महिला हेल्पलाइन: 1091 (घरगुती हिंसा, छळ, बचाव)\n"
+            "संकटात महिला (24 तास): 181\n"
+            "बाल हेल्पलाइन: 1098 (चाइल्डलाइन, मोफत, 24×7)\n"
+            "वरिष्ठ नागरिक हेल्पलाइन: 14567\n"
+            "रस्ता अपघात: 1073\n"
+            "मानसिक आरोग्य (iCall): 9152987821 (सोमवार-शनिवार, सकाळी 8 ते रात्री 10)\n"
+            "वांड्रेवाला फाउंडेशन (24 तास): 1860-2662-345\n"
+            "पीएम किसान: 155261\n"
+            "किसान कॉल सेंटर: 1800-180-1551 (टोल फ्री, दररोज सकाळी 6 ते रात्री 10)\n"
+            "आयुष्मान भारत: 14555\n"
+            "रेशन: 1967"
+        ),
+        "text_ta": (
+            "இந்தியாவில் முக்கியமான அவசர உதவி எண்கள்:\n"
+            "காவல்துறை: 100 (குற்றம், திருட்டு, வன்முறை, விபத்து)\n"
+            "ஆம்புலன்ஸ்: 108 (இலவசம், 24×7, மருத்துவ அவசரநிலை)\n"
+            "தீயணைப்பு: 101\n"
+            "தேசிய அவசரநிலை: 112 (ஒரே எண் - காவல், ஆம்புலன்ஸ், தீயணைப்பு)\n"
+            "பெண்கள் உதவி: 1091 (வீட்டு வன்முறை, துன்புறுத்தல், மீட்பு)\n"
+            "துன்பத்தில் உள்ள பெண்கள் (24 மணி): 181\n"
+            "குழந்தை உதவி: 1098 (சைல்ட்லைன், இலவசம், 24×7)\n"
+            "மூத்த குடிமக்கள் உதவி: 14567\n"
+            "சாலை விபத்து: 1073\n"
+            "மனநல உதவி (iCall): 9152987821 (திங்கள்-சனி, காலை 8 - இரவு 10)\n"
+            "வாண்ட்ரேவாலா அறக்கட்டளை (24 மணி): 1860-2662-345\n"
+            "பிஎம் கிசான்: 155261\n"
+            "கிசான் கால் சென்டர்: 1800-180-1551 (இலவசம், தினமும் காலை 6 - இரவு 10)\n"
+            "ஆயுஷ்மான் பாரத்: 14555\n"
+            "ரேஷன்: 1967"
+        ),
+        "helpline": "112",
+        "website": "india.gov.in",
+    },
+
+    # ── 2. MEDICAL EMERGENCIES – HEART ATTACK ────────────────────────────
+    {
+        "scheme_id": "medical-emergency-heart-attack",
+        "section_id": "overview",
+        "category": "health",
+        "name_en": "Heart Attack – First Aid & Emergency Action",
+        "name_hi": "हार्ट अटैक – प्राथमिक उपचार और आपातकालीन कार्रवाई",
+        "text_en": (
+            "If someone has a heart attack, act immediately. Call 108 for ambulance right away. "
+            "Signs: chest pain or pressure, pain in left arm, jaw, or back, sweating, nausea, shortness of breath. "
+            "First aid: Make the person sit or lie comfortably. Loosen tight clothing. "
+            "If they are conscious, give one aspirin tablet (300-325 mg) if available and not allergic. "
+            "Do NOT give water or food. Do NOT leave the person alone. "
+            "If they stop breathing, start CPR: press hard and fast on the centre of the chest, 30 times, then give 2 breaths. "
+            "Repeat until ambulance arrives. Time is critical – every minute matters in a heart attack. "
+            "The nearest government hospital with emergency facilities: dial 112 or 108."
+        ),
+        "text_hi": (
+            "अगर किसी को हार्ट अटैक आए तो तुरंत कार्रवाई करें। सबसे पहले 108 पर एम्बुलेंस बुलाएं। "
+            "लक्षण: सीने में दर्द या दबाव, बाएं हाथ, जबड़े या पीठ में दर्द, पसीना, जी मिचलाना, सांस लेने में तकलीफ। "
+            "प्राथमिक उपचार: व्यक्ति को आराम से बिठाएं या लिटाएं। कपड़े ढीले करें। "
+            "अगर होश में हैं और एलर्जी नहीं है तो एक एस्पिरिन (300-325 mg) दें। "
+            "पानी या खाना न दें। अकेला न छोड़ें। "
+            "अगर सांस रुक जाए तो CPR शुरू करें: सीने के बीच में 30 बार जोर से दबाएं, फिर 2 सांसें दें। "
+            "एम्बुलेंस आने तक जारी रखें। हार्ट अटैक में हर मिनट कीमती होता है।"
+        ),
+        "text_mr": (
+            "कुणाला हार्ट अटॅक आल्यास तात्काळ कृती करा. आधी 108 वर रुग्णवाहिका बोलवा. "
+            "लक्षणे: छातीत दुखणे किंवा दाब, डाव्या हाताला, जबड्याला किंवा पाठीला दुखणे, घाम येणे, मळमळ, श्वास घेण्यास त्रास. "
+            "प्रथमोपचार: व्यक्तीला आरामदायी स्थितीत बसवा किंवा झोपवा. घट्ट कपडे सैल करा. "
+            "शुद्धीत असल्यास आणि ऍलर्जी नसल्यास एक ऍस्पिरिन (300-325 mg) द्या. "
+            "पाणी किंवा अन्न देऊ नका. एकटे सोडू नका. "
+            "श्वास थांबल्यास CPR सुरू करा: छातीच्या मध्यभागी 30 वेळा जोराने दाबा, मग 2 श्वास द्या. "
+            "रुग्णवाहिका येईपर्यंत सुरू ठेवा. हार्ट अटॅकमध्ये प्रत्येक मिनिट महत्त्वाचा असतो."
+        ),
+        "text_ta": (
+            "யாரேனும் மாரடைப்பு அறிகுறிகள் காட்டினால் உடனே செயல்படுங்கள். முதலில் 108 அழைத்து ஆம்புலன்ஸ் வரவழையுங்கள். "
+            "அறிகுறிகள்: மார்பில் வலி அல்லது அழுத்தம், இடது கை, தாடை அல்லது முதுகில் வலி, வியர்வை, குமட்டல், மூச்சுத்திணறல். "
+            "முதலுதவி: நபரை அமரவைக்கவும் அல்லது படுக்கவைக்கவும். இறுக்கமான ஆடைகளை தளர்த்தவும். "
+            "நினைவுடன் இருந்தால், ஒட்டுமொத்த அஸ்பிரின் (300-325 மி.கி.) கொடுக்கவும் (ஒவ்வாமை இல்லை என்றால்). "
+            "தண்ணீர் அல்லது உணவு கொடுக்க வேண்டாம். தனியாக விட வேண்டாம். "
+            "மூச்சு நின்றால் CPR தொடங்குங்கள்: மார்பின் மையத்தில் 30 முறை வலிமையாக அழுத்துங்கள், பிறகு 2 மூச்சு கொடுங்கள். "
+            "ஆம்புலன்ஸ் வரும் வரை தொடருங்கள். மாரடைப்பில் ஒவ்வொரு நிமிடமும் முக்கியம்."
+        ),
+        "helpline": "108",
+        "website": "nhm.gov.in",
+    },
+
+    # ── 3. MEDICAL EMERGENCIES – SNAKE BITE ─────────────────────────────
+    {
+        "scheme_id": "medical-emergency-snake-bite",
+        "section_id": "overview",
+        "category": "health",
+        "name_en": "Snake Bite – Emergency First Aid",
+        "name_hi": "सांप काटने पर – आपातकालीन प्राथमिक उपचार",
+        "text_en": (
+            "If someone is bitten by a snake, call 108 immediately and rush to the nearest government hospital. "
+            "Anti-snake venom is available free at all district and government hospitals in India. "
+            "DO NOT: cut the wound, suck out venom, apply tourniquet, give alcohol, apply herbs or traditional remedies. "
+            "All of these worsen the condition. "
+            "DO: Keep the person calm and still. Immobilise the bitten limb below heart level. "
+            "Remove jewelry and tight clothing near the bite. Note the time of bite. "
+            "Try to safely photograph the snake if possible (do not catch it). "
+            "Symptoms to watch: swelling, blurred vision, drooping eyelids, difficulty swallowing, bleeding. "
+            "Transport immediately sitting upright. Anti-venom must be given within 4-6 hours. "
+            "All anti-venom treatment is free at government hospitals under Ayushman Bharat."
+        ),
+        "text_hi": (
+            "सांप काटने पर तुरंत 108 पर कॉल करें और नजदीकी सरकारी अस्पताल जाएं। "
+            "भारत के सभी जिला और सरकारी अस्पतालों में एंटी-स्नेक वेनम मुफ्त उपलब्ध है। "
+            "क्या न करें: घाव काटना, जहर चूसना, रस्सी से बांधना, शराब देना, जड़ी-बूटी लगाना। ये सब हालत बिगाड़ते हैं। "
+            "क्या करें: व्यक्ति को शांत और स्थिर रखें। काटे हुए अंग को दिल से नीचे रखें। "
+            "काटे के पास से गहने और कसे कपड़े हटाएं। काटने का समय नोट करें। "
+            "हो सके तो सांप की फोटो लें (पकड़ें नहीं)। "
+            "लक्षण देखें: सूजन, धुंधली दृष्टि, पलकें गिरना, निगलने में कठिनाई, खून बहना। "
+            "4-6 घंटे के अंदर एंटी-वेनम देना जरूरी है। सरकारी अस्पताल में इलाज मुफ्त है।"
+        ),
+        "text_mr": (
+            "साप चावल्यावर तात्काळ 108 वर कॉल करा आणि जवळच्या सरकारी रुग्णालयात जा. "
+            "भारतातील सर्व जिल्हा आणि सरकारी रुग्णालयांमध्ये अँटी-स्नेक व्हेनम मोफत उपलब्ध आहे. "
+            "काय करू नये: जखम कापणे, विष चोखणे, दोरी बांधणे, दारू देणे, औषधी वनस्पती लावणे. हे सर्व स्थिती बिघडवतात. "
+            "काय करावे: व्यक्तीला शांत आणि स्थिर ठेवा. चावलेला अंग हृदयापेक्षा खाली ठेवा. "
+            "चाव्याजवळील दागिने आणि घट्ट कपडे काढा. चावण्याची वेळ नोंद ठेवा. "
+            "शक्य असल्यास सापाचा फोटो घ्या (पकडू नका). "
+            "4-6 तासांच्या आत अँटी-व्हेनम देणे आवश्यक आहे. सरकारी रुग्णालयात उपचार मोफत."
+        ),
+        "text_ta": (
+            "பாம்பு கடித்தால் உடனடியாக 108 அழைத்து அருகிலுள்ள அரசு மருத்துவமனைக்கு செல்லுங்கள். "
+            "இந்தியாவில் அனைத்து மாவட்ட மற்றும் அரசு மருத்துவமனைகளில் பாம்பு விஷ மருந்து இலவசமாக கிடைக்கும். "
+            "செய்யக்கூடாதவை: காயத்தை வெட்டுவது, விஷத்தை உறிஞ்சுவது, கயிறு கட்டுவது, மது கொடுப்பது, மூலிகை போடுவது - இவை நிலைமையை மோசமாக்கும். "
+            "செய்ய வேண்டியவை: நபரை அமைதியாகவும் அசையாமலும் வைக்கவும். கடிக்கப்பட்ட உறுப்பை இதயத்தை விட கீழே வைக்கவும். "
+            "கடியிடத்தின் அருகே நகைகள் மற்றும் இறுக்கமான ஆடைகளை அகற்றவும். "
+            "4-6 மணி நேரத்திற்குள் மருந்து கொடுக்க வேண்டும். அரசு மருத்துவமனையில் சிகிச்சை இலவசம்."
+        ),
+        "helpline": "108",
+        "website": "nhm.gov.in",
+    },
+
+    # ── 4. MEDICAL EMERGENCIES – HIGH FEVER IN CHILD ────────────────────
+    {
+        "scheme_id": "medical-emergency-child-fever",
+        "section_id": "overview",
+        "category": "health",
+        "name_en": "High Fever in Child – What to Do",
+        "name_hi": "बच्चे को तेज बुखार – क्या करें",
+        "text_en": (
+            "If a child has very high fever, stay calm and act quickly. "
+            "Normal body temperature is 37°C (98.6°F). Danger signs requiring immediate hospital visit: "
+            "fever above 104°F (40°C), child under 3 months with any fever, seizures or convulsions, "
+            "child is not responding, severe headache with stiff neck, difficulty breathing, "
+            "rash that spreads quickly, not urinating for 8+ hours, very irritable or limp. "
+            "First aid at home: Remove extra clothing. Sponge the child with lukewarm (not cold) water. "
+            "Give paracetamol syrup (Calpol/Crocin) in correct dose for weight and age. "
+            "Keep the child hydrated with ORS, coconut water, or clean water. "
+            "Do NOT give aspirin to children. Do NOT use ice-cold water. "
+            "For malaria areas: any fever lasting more than 2 days needs a malaria test. "
+            "Call 108 for ambulance if the child has convulsions, is unconscious, or cannot breathe."
+        ),
+        "text_hi": (
+            "बच्चे को तेज बुखार होने पर शांत रहें और जल्दी कार्रवाई करें। "
+            "सामान्य शरीर का तापमान 37°C (98.6°F) होता है। तुरंत अस्पताल जाने के खतरनाक लक्षण: "
+            "104°F (40°C) से ऊपर बुखार, 3 महीने से कम बच्चे को कोई भी बुखार, दौरे, बच्चा बेहोश हो, "
+            "तेज सिरदर्द के साथ गर्दन अकड़ना, सांस लेने में तकलीफ, तेजी से फैलने वाले चकत्ते, "
+            "8+ घंटे में पेशाब नहीं आना। "
+            "घर पर प्राथमिक उपचार: अतिरिक्त कपड़े उतारें। गुनगुने पानी से शरीर पोंछें (ठंडे पानी से नहीं)। "
+            "वजन और उम्र के हिसाब से पैरासिटामॉल सिरप दें। "
+            "ORS, नारियल पानी या साफ पानी पिलाते रहें। "
+            "बच्चों को एस्पिरिन न दें। बर्फीला पानी न लगाएं। "
+            "मलेरिया वाले क्षेत्र में 2 दिन से ऊपर बुखार पर मलेरिया जांच जरूरी। "
+            "दौरे, बेहोशी या सांस रुकने पर 108 पर कॉल करें।"
+        ),
+        "text_mr": (
+            "मुलाला तीव्र ताप असल्यास शांत राहा आणि त्वरेने कृती करा. "
+            "सामान्य शरीराचे तापमान 37°C (98.6°F). ताबडतोब रुग्णालयात जाण्याची लक्षणे: "
+            "104°F (40°C) पेक्षा जास्त ताप, 3 महिन्यांपेक्षा कमी वयाच्या बाळाला कोणताही ताप, फेफरे, "
+            "मूल शुद्धीत नाही, तीव्र डोकेदुखी आणि मानेची अकडण, श्वास घेण्यास त्रास. "
+            "घरगुती प्रथमोपचार: अतिरिक्त कपडे काढा. कोमट पाण्याने अंग पुसा (थंड पाण्याने नाही). "
+            "वजन आणि वयानुसार पॅरासिटामॉल सिरप द्या. ORS, नारळ पाणी किंवा स्वच्छ पाणी पाजत राहा. "
+            "मुलांना ऍस्पिरिन देऊ नका. बर्फाचे पाणी लावू नका. "
+            "मलेरिया क्षेत्रात 2 दिवसांपेक्षा जास्त ताप असल्यास मलेरिया तपासणी आवश्यक. "
+            "फेफरे, बेशुद्धी किंवा श्वास थांबल्यास 108 वर कॉल करा."
+        ),
+        "text_ta": (
+            "குழந்தைக்கு அதிக காய்ச்சல் வந்தால் அமைதியாக இருந்து விரைவாக செயல்படுங்கள். "
+            "சாதாரண உடல் வெப்பநிலை 37°C (98.6°F). உடனடியாக மருத்துவமனைக்கு செல்ல வேண்டிய அபாய அறிகுறிகள்: "
+            "104°F (40°C)க்கு மேல் காய்ச்சல், 3 மாதத்திற்கும் குறைவான குழந்தைக்கு எந்த காய்ச்சலும், வலிப்பு, "
+            "குழந்தை பதில் சொல்லவில்லை, கடுமையான தலைவலியுடன் கழுத்து விறைப்பு, மூச்சுத்திணறல். "
+            "வீட்டில் முதலுதவி: கூடுதல் ஆடைகளை நீக்குங்கள். வெதுவெதுப்பான நீரால் உடலை துடையுங்கள் (குளிர்ந்த நீர் வேண்டாம்). "
+            "எடை மற்றும் வயதுக்கு ஏற்ப பாராசிட்டமால் சிரப் கொடுங்கள். "
+            "ORS, தேங்காய் தண்ணீர் அல்லது சுத்தமான தண்ணீர் கொடுங்கள். "
+            "குழந்தைகளுக்கு அஸ்பிரின் கொடுக்காதீர்கள். பனி குளிர் நீர் போடாதீர்கள். "
+            "வலிப்பு, மயக்கம் அல்லது மூச்சு நிற்றால் 108 அழைக்கவும்."
+        ),
+        "helpline": "108",
+        "website": "nhm.gov.in",
+    },
+
+    # ── 5. MEDICAL EMERGENCIES – DROWNING & CHOKING ─────────────────────
+    {
+        "scheme_id": "medical-emergency-drowning-choking",
+        "section_id": "overview",
+        "category": "health",
+        "name_en": "Drowning and Choking – Emergency First Aid",
+        "name_hi": "डूबना और दम घुटना – आपातकालीन प्राथमिक उपचार",
+        "text_en": (
+            "DROWNING: Call 108. Get the person out of water safely. "
+            "If not breathing, start CPR immediately: 30 chest compressions, 2 rescue breaths. "
+            "Do NOT hang them upside down or try to shake water out. Keep them warm. Rush to hospital even if they seem fine, as delayed complications can occur.\n"
+            "CHOKING (adult/child over 1 year): If person cannot cough, speak, or breathe, perform Heimlich maneuver: "
+            "Stand behind them, wrap arms around waist, make a fist above navel, thrust inward and upward sharply. "
+            "Repeat until the object comes out. If they become unconscious, start CPR and call 108.\n"
+            "CHOKING (infant under 1 year): Hold face-down on your forearm. Give 5 back blows between shoulder blades. "
+            "Turn face-up, give 5 chest thrusts with 2 fingers. Repeat until clear or medical help arrives.\n"
+            "Remember: For choking, DO NOT slap hard on the back for adults standing upright. DO NOT do blind finger sweeps."
+        ),
+        "text_hi": (
+            "डूबना: 108 पर कॉल करें। व्यक्ति को सुरक्षित रूप से पानी से बाहर निकालें। "
+            "सांस न आ रही हो तो CPR शुरू करें: 30 छाती पर दबाव, 2 सांसें। उल्टा न लटकाएं। गर्म रखें। अस्पताल ले जाएं।\n"
+            "दम घुटना (1 साल से बड़े): अगर खांस नहीं सकते, बोल नहीं सकते, सांस नहीं ले सकते तो Heimlich maneuver करें: "
+            "पीछे खड़े होकर कमर के चारों ओर हाथ लपेटें, नाभि के ऊपर मुट्ठी बनाएं, अंदर और ऊपर की ओर तेजी से धकेलें। "
+            "जब तक वस्तु न निकले दोहराएं। अगर बेहोश हो जाए तो CPR शुरू करें और 108 पर कॉल करें।\n"
+            "दम घुटना (1 साल से कम के शिशु): मुंह नीचे बांह पर लिटाएं। कंधों के बीच 5 बार थपथपाएं। "
+            "उल्टा करके 2 उंगलियों से 5 बार छाती दबाएं। जब तक साफ न हो दोहराएं।"
+        ),
+        "text_mr": (
+            "बुडणे: 108 वर कॉल करा. व्यक्तीला सुरक्षितपणे पाण्यातून बाहेर काढा. "
+            "श्वास नसल्यास CPR सुरू करा: 30 छाती दाबण्या, 2 श्वास. उलटे लटकवू नका. उबदार ठेवा. रुग्णालयात न्या.\n"
+            "दम कोंडणे (1 वर्षांपेक्षा मोठे): खोकणे, बोलणे, श्वास घेणे जमत नसल्यास Heimlich maneuver करा: "
+            "मागे उभे राहून कमरेभोवती हात गुंडाळा, बेंबीच्या वर मुठ बनवा, आत आणि वर झटकन ढकला. "
+            "वस्तू बाहेर पडेपर्यंत दोहराव करा. बेशुद्ध झाल्यास CPR सुरू करा आणि 108 वर कॉल करा.\n"
+            "दम कोंडणे (1 वर्षांपेक्षा कमी वयाचे बाळ): तोंड खाली करून बाहूवर झोपवा. खांद्याच्या मध्ये 5 वेळा थोपटा. "
+            "उलटे करून 2 बोटांनी 5 वेळा छाती दाबा. जोपर्यंत साफ होत नाही तोपर्यंत दोहराव करा."
+        ),
+        "text_ta": (
+            "மூழ்குதல்: 108 அழைக்கவும். நபரை பாதுகாப்பாக நீரிலிருந்து வெளியே எடுக்கவும். "
+            "மூச்சு இல்லை என்றால் CPR தொடங்குங்கள்: 30 மார்பு அழுத்தங்கள், 2 மூச்சு. தலைகீழாக தொங்கவிடாதீர்கள். "
+            "வெப்பமாக வைத்திருங்கள். மருத்துவமனைக்கு அழைத்துச் செல்லுங்கள்.\n"
+            "தொண்டையில் அடைப்பு (1 வயதுக்கு மேல்): இருமல், பேசுதல், மூச்சு விடுதல் முடியாதவர்களுக்கு Heimlich maneuver: "
+            "பின்னால் நின்று இடுப்பைச் சுற்றி கைகளை வளைக்கவும், தொப்புளுக்கு மேலே கைப்பிடி செய்யவும், உள்ளே மற்றும் மேலே தள்ளவும். "
+            "பொருள் வெளியே வரும் வரை மீண்டும் மீண்டும் செய்யுங்கள். மயக்கம் ஆனால் CPR தொடங்கி 108 அழைக்கவும்.\n"
+            "தொண்டையில் அடைப்பு (1 வயதுக்கு கீழ் குழந்தை): முகம் கீழே கையில் வைக்கவும். தோள்பட்டைகளுக்கு இடையே 5 முறை தட்டவும். "
+            "திருப்பி 2 விரல்களால் 5 முகை மார்பை அழுத்தவும். தெளிவாகும் வரை தொடருங்கள்."
+        ),
+        "helpline": "108",
+        "website": "nhm.gov.in",
+    },
+
+    # ── 6. LEGAL RIGHTS – DOMESTIC VIOLENCE ─────────────────────────────
+    {
+        "scheme_id": "legal-rights-domestic-violence",
+        "section_id": "overview",
+        "category": "legal",
+        "name_en": "Domestic Violence – Your Legal Rights",
+        "name_hi": "घरेलू हिंसा – आपके कानूनी अधिकार",
+        "text_en": (
+            "Domestic violence is a crime in India. The Protection of Women from Domestic Violence Act 2005 protects women from physical, sexual, emotional, verbal, and economic abuse by a spouse or family member.\n"
+            "Your rights under the law:\n"
+            "1. RIGHT TO RESIDENCE: You cannot be thrown out of the shared household. Even without ownership, you have the right to stay.\n"
+            "2. PROTECTION ORDER: A magistrate can order the abuser to not contact or come near you.\n"
+            "3. MAINTENANCE: You can get maintenance (money) from the abuser during court proceedings.\n"
+            "4. COMPENSATION: You can claim compensation for injuries and mental trauma.\n"
+            "5. FREE LEGAL AID: You have the right to free legal representation if you cannot afford it.\n"
+            "How to report: Call Women Helpline 181 (24hr) or 1091. Go to the nearest police station. "
+            "Contact a Protection Officer (available in every district). "
+            "Free legal aid at District Legal Services Authority (DLSA). "
+            "NGO Mahila Shakti Kendra in every district can also help."
+        ),
+        "text_hi": (
+            "घरेलू हिंसा भारत में एक अपराध है। घरेलू हिंसा से महिला संरक्षण अधिनियम 2005 पति या परिवार के सदस्य द्वारा शारीरिक, यौन, मानसिक, मौखिक और आर्थिक शोषण से बचाता है।\n"
+            "कानून के तहत आपके अधिकार:\n"
+            "1. निवास का अधिकार: आपको साझा घर से नहीं निकाला जा सकता। बिना स्वामित्व के भी रहने का अधिकार है।\n"
+            "2. संरक्षण आदेश: मजिस्ट्रेट दुर्व्यवहारी को आपसे संपर्क करने या पास आने से रोक सकते हैं।\n"
+            "3. भरण-पोषण: कोर्ट की कार्रवाई के दौरान दुर्व्यवहारी से भरण-पोषण पाने का हक।\n"
+            "4. मुआवजा: चोट और मानसिक आघात के लिए हर्जाना मांग सकते हैं।\n"
+            "5. मुफ्त कानूनी सहायता: पैसे न होने पर मुफ्त कानूनी प्रतिनिधित्व का अधिकार।\n"
+            "शिकायत दर्ज करें: महिला हेल्पलाइन 181 (24 घंटे) या 1091 पर कॉल करें। "
+            "नजदीकी पुलिस स्टेशन जाएं। जिला संरक्षण अधिकारी से मिलें। "
+            "जिला विधिक सेवा प्राधिकरण (DLSA) में मुफ्त कानूनी सहायता।"
+        ),
+        "text_mr": (
+            "घरगुती हिंसा भारतात गुन्हा आहे. घरेलू हिंसा अधिनियम 2005 पती किंवा कुटुंब सदस्याकडून शारीरिक, लैंगिक, भावनिक, मौखिक आणि आर्थिक अत्याचारापासून संरक्षण देतो.\n"
+            "कायद्यानुसार तुमचे हक्क:\n"
+            "1. वास्तव्याचा हक्क: तुम्हाला सामाईक घरातून बाहेर काढता येत नाही. मालकी नसली तरी राहण्याचा हक्क आहे.\n"
+            "2. संरक्षण आदेश: दंडाधिकारी अत्याचार करणाऱ्याला तुमच्याशी संपर्क करण्यापासून रोखू शकतो.\n"
+            "3. पोटगी: न्यायालयीन कार्यवाहीदरम्यान अत्याचार करणाऱ्याकडून पोटगी मिळवण्याचा हक्क.\n"
+            "4. नुकसानभरपाई: दुखापती आणि मानसिक आघाताबद्दल नुकसानभरपाई मागता येते.\n"
+            "5. मोफत कायदेशीर मदत: परवडत नसल्यास मोफत कायदेशीर प्रतिनिधित्वाचा हक्क.\n"
+            "तक्रार कशी द्यायची: महिला हेल्पलाइन 181 (24 तास) किंवा 1091 वर कॉल करा. "
+            "जवळच्या पोलीस स्टेशनला जा. जिल्हा संरक्षण अधिकाऱ्याशी संपर्क करा. जिल्हा विधी सेवा प्राधिकरण (DLSA) मध्ये मोफत मदत."
+        ),
+        "text_ta": (
+            "குடும்ப வன்முறை இந்தியாவில் குற்றம். குடும்ப வன்முறையிலிருந்து பெண்களைப் பாதுகாக்கும் சட்டம் 2005 கணவன் அல்லது குடும்ப உறுப்பினரால் உடல், பாலியல், உணர்ச்சி, வாய்மொழி மற்றும் பொருளாதார துன்புறுத்தலிலிருந்து பாதுகாக்கிறது.\n"
+            "சட்டப்படி உங்கள் உரிமைகள்:\n"
+            "1. வசிப்பிட உரிமை: பகிரப்பட்ட வீட்டிலிருந்து உங்களை வெளியேற்ற முடியாது. உடைமை இல்லாவிட்டாலும் தங்கும் உரிமை உண்டு.\n"
+            "2. பாதுகாப்பு உத்தரவு: நீதிமன்றம் துன்புறுத்துபவர் உங்களை அணுகுவதை தடை செய்யலாம்.\n"
+            "3. ஜீவனாம்சம்: வழக்கு நடைபெறும் போது துன்புறுத்துபவரிடம் ஜீவனாம்சம் பெறலாம்.\n"
+            "4. இழப்பீடு: காயங்கள் மற்றும் மனத்துன்பத்திற்கு இழப்பீடு கோரலாம்.\n"
+            "5. இலவச சட்ட உதவி: பணம் இல்லை என்றால் இலவச சட்ட பிரதிநிதித்துவம் உண்டு.\n"
+            "புகார் கொடுக்க: மகளிர் உதவி 181 (24 மணி) அல்லது 1091 அழைக்கவும். "
+            "அருகிலுள்ள காவல் நிலையம் செல்லுங்கள். மாவட்ட பாதுகாப்பு அதிகாரியை தொடர்பு கொள்ளுங்கள். "
+            "மாவட்ட சட்ட சேவை ஆணையம் (DLSA)இல் இலவச சட்ட உதவி."
+        ),
+        "helpline": "181",
+        "website": "wcd.nic.in",
+    },
+
+    # ── 7. LEGAL RIGHTS – WHEN ARRESTED ─────────────────────────────────
+    {
+        "scheme_id": "legal-rights-arrested",
+        "section_id": "overview",
+        "category": "legal",
+        "name_en": "Rights When Arrested by Police",
+        "name_hi": "पुलिस द्वारा गिरफ्तारी पर आपके अधिकार",
+        "text_en": (
+            "If you or someone you know is arrested by police, these are your fundamental rights in India:\n"
+            "1. RIGHT TO KNOW THE REASON: Police must tell you the reason for arrest. Demand to see the arrest warrant if applicable.\n"
+            "2. RIGHT TO A LAWYER: You have the right to consult a lawyer immediately. Police cannot deny this. You can call a family member or lawyer.\n"
+            "3. RIGHT TO SILENCE: You do not have to answer questions. Anything you say can be used against you. Stay calm and silent until your lawyer arrives.\n"
+            "4. RIGHT AGAINST TORTURE: Police cannot beat, torture, or threaten you. This is illegal and a human rights violation. File a complaint with the State Human Rights Commission.\n"
+            "5. PRODUCED BEFORE MAGISTRATE IN 24 HOURS: Police must produce you before a magistrate within 24 hours of arrest (excluding travel time).\n"
+            "6. FREE LEGAL AID: If you cannot afford a lawyer, the government must provide one free. Contact District Legal Services Authority (DLSA) – 15100.\n"
+            "7. WOMAN ARRESTED: Female arrested person must be taken to a police station by a female police officer. Cannot be detained overnight without magistrate order.\n"
+            "Free Legal Aid helpline: 15100. National Legal Services Authority (NALSA): nalsa.gov.in"
+        ),
+        "text_hi": (
+            "अगर आपको या किसी परिचित को पुलिस ने गिरफ्तार किया है, तो ये भारत में आपके मौलिक अधिकार हैं:\n"
+            "1. कारण जानने का अधिकार: पुलिस को गिरफ्तारी का कारण बताना होगा। वारंट मांगें।\n"
+            "2. वकील का अधिकार: तुरंत वकील से मिलने का हक। पुलिस मना नहीं कर सकती। परिवार को सूचना दे सकते हैं।\n"
+            "3. चुप रहने का अधिकार: सवालों का जवाब देना जरूरी नहीं। वकील आने तक शांत रहें।\n"
+            "4. यातना से सुरक्षा: पुलिस मारपीट नहीं कर सकती। यह अवैध और मानवाधिकार उल्लंघन है।\n"
+            "5. 24 घंटे में मजिस्ट्रेट के सामने: गिरफ्तारी के 24 घंटे अंदर मजिस्ट्रेट के सामने पेश करना जरूरी।\n"
+            "6. मुफ्त कानूनी सहायता: वकील न हो तो सरकार मुफ्त वकील देगी। DLSA से संपर्क करें – 15100।\n"
+            "7. महिला गिरफ्तारी: महिला पुलिस द्वारा ही गिरफ्तार किया जाएगा। मजिस्ट्रेट आदेश के बिना रात को हिरासत नहीं।\n"
+            "मुफ्त कानूनी सहायता हेल्पलाइन: 15100। NALSA: nalsa.gov.in"
+        ),
+        "text_mr": (
+            "तुम्हाला किंवा ओळखीच्या कुणाला पोलिसांनी अटक केली असल्यास, भारतातील तुमचे मूलभूत हक्क:\n"
+            "1. कारण जाणण्याचा हक्क: पोलिसांना अटकेचे कारण सांगायलाच हवे. वॉरंट मागा.\n"
+            "2. वकिलाचा हक्क: तात्काळ वकिलाशी भेटण्याचा हक्क. पोलीस नाकारू शकत नाहीत.\n"
+            "3. मौन राहण्याचा हक्क: प्रश्नांची उत्तरे देणे अनिवार्य नाही. वकील येईपर्यंत शांत राहा.\n"
+            "4. छळापासून संरक्षण: पोलीस मारहाण करू शकत नाहीत. हे बेकायदेशीर आणि मानवाधिकार उल्लंघन आहे.\n"
+            "5. 24 तासांत दंडाधिकाऱ्यांसमोर: अटकेनंतर 24 तासांत दंडाधिकाऱ्यांसमोर हजर करणे बंधनकारक.\n"
+            "6. मोफत कायदेशीर मदत: वकील परवडत नसल्यास सरकार मोफत वकील देईल. DLSA शी संपर्क – 15100.\n"
+            "7. महिला अटक: महिला पोलीस अधिकाऱ्याकडून अटक. न्यायदंडाधिकाऱ्यांच्या आदेशाशिवाय रात्री ताब्यात नाही.\n"
+            "मोफत कायदेशीर मदत हेल्पलाइन: 15100. NALSA: nalsa.gov.in"
+        ),
+        "text_ta": (
+            "நீங்கள் அல்லது உங்களுக்கு தெரிந்த ஒருவர் காவலர்களால் கைது செய்யப்பட்டால், இந்தியாவில் உங்கள் அடிப்படை உரிமைகள்:\n"
+            "1. காரணம் அறியும் உரிமை: கைது செய்த காரணத்தை காவலர்கள் சொல்ல வேண்டும். வாரண்ட் கேளுங்கள்.\n"
+            "2. வழக்கறிஞர் உரிமை: உடனடியாக வழக்கறிஞரை சந்திக்கும் உரிமை. காவலர்கள் மறுக்க முடியாது.\n"
+            "3. மௌன உரிமை: கேள்விகளுக்கு பதில் சொல்ல வேண்டாம். வழக்கறிஞர் வரும் வரை அமைதியாக இருங்கள்.\n"
+            "4. சித்திரவதை தடை: காவலர்கள் அடிக்க, சித்திரவதை செய்ய, அச்சுறுத்த முடியாது. இது சட்டவிரோதம்.\n"
+            "5. 24 மணி நேரத்தில் நீதிமன்றம்: கைதுக்குப் பிறகு 24 மணி நேரத்திற்குள் நீதிபதி முன் ஆஜர்படுத்த வேண்டும்.\n"
+            "6. இலவச சட்ட உதவி: வழக்கறிஞர் இல்லை என்றால் அரசு இலவசமாக வழங்கும். DLSA தொடர்பு – 15100.\n"
+            "7. பெண் கைது: பெண் காவலர்களால் மட்டுமே கைது. நீதிபதி உத்தரவு இல்லாமல் இரவில் தடுத்துவைக்க முடியாது.\n"
+            "இலவச சட்ட உதவி: 15100. NALSA: nalsa.gov.in"
+        ),
+        "helpline": "15100",
+        "website": "nalsa.gov.in",
+    },
+
+    # ── 8. LEGAL RIGHTS – FREE LEGAL AID ────────────────────────────────
+    {
+        "scheme_id": "free-legal-aid-india",
+        "section_id": "overview",
+        "category": "legal",
+        "name_en": "Free Legal Aid – Who Can Get It and How",
+        "name_hi": "मुफ्त कानूनी सहायता – कौन पा सकता है और कैसे",
+        "text_en": (
+            "India provides free legal aid to every citizen who cannot afford a lawyer. This is a fundamental right under Article 39A of the Constitution.\n"
+            "Who gets free legal aid:\n"
+            "- SC/ST persons\n"
+            "- Women and children\n"
+            "- Persons with disabilities\n"
+            "- Victims of trafficking, disaster, violence\n"
+            "- Persons in custody or detained\n"
+            "- Anyone with annual income below Rs 1 lakh (varies by state)\n"
+            "- Victims of mass disasters, ethnic violence, caste atrocity, or industrial disasters\n"
+            "How to get free legal aid:\n"
+            "1. Call NALSA helpline: 15100 (toll-free)\n"
+            "2. Walk into the nearest District Legal Services Authority (DLSA) office\n"
+            "3. Contact Taluka/Sub-District Legal Services Committee\n"
+            "4. Go to the nearest court – every court has a Legal Aid Clinic\n"
+            "Free mediation and Lok Adalat (people's court) are also available to settle matters without lengthy court cases."
+        ),
+        "text_hi": (
+            "भारत में हर वह नागरिक जो वकील का खर्च नहीं उठा सकता, मुफ्त कानूनी सहायता पाने का हकदार है। यह संविधान के अनुच्छेद 39A के तहत मौलिक अधिकार है।\n"
+            "किसे मिलती है मुफ्त सहायता:\n"
+            "- अनुसूचित जाति/जनजाति के लोग\n"
+            "- महिलाएं और बच्चे\n"
+            "- विकलांग व्यक्ति\n"
+            "- तस्करी, आपदा, हिंसा के पीड़ित\n"
+            "- हिरासत में या बंद व्यक्ति\n"
+            "- 1 लाख से कम वार्षिक आय वाले (राज्य के अनुसार अलग)\n"
+            "- सामूहिक आपदा, जाति अत्याचार, औद्योगिक दुर्घटना के पीड़ित\n"
+            "कैसे पाएं:\n"
+            "1. NALSA हेल्पलाइन पर कॉल करें: 15100 (टोल फ्री)\n"
+            "2. जिला विधिक सेवा प्राधिकरण (DLSA) कार्यालय जाएं\n"
+            "3. तहसील/उप-जिला विधिक सेवा समिति से संपर्क करें\n"
+            "4. नजदीकी कोर्ट में - हर कोर्ट में लीगल एड क्लिनिक है\n"
+            "मुफ्त मध्यस्थता और लोक अदालत से बिना लंबे मुकदमे के मामला सुलझाएं।"
+        ),
+        "text_mr": (
+            "भारतात ज्याला वकील परवडत नाही त्या प्रत्येक नागरिकाला मोफत कायदेशीर मदत मिळण्याचा हक्क आहे. हा संविधानाच्या अनुच्छेद 39A अन्वये मूलभूत हक्क आहे.\n"
+            "कोणाला मोफत मदत मिळते:\n"
+            "- SC/ST व्यक्ती\n"
+            "- महिला आणि मुले\n"
+            "- दिव्यांग व्यक्ती\n"
+            "- मानवतस्करी, आपत्ती, हिंसाचार पीडित\n"
+            "- ताब्यात असलेले किंवा अटकेतील व्यक्ती\n"
+            "- वार्षिक उत्पन्न 1 लाख रुपयांपेक्षा कमी असलेले (राज्यानुसार वेगळे)\n"
+            "कसे मिळवायचे:\n"
+            "1. NALSA हेल्पलाइन: 15100 (टोल फ्री) वर कॉल करा\n"
+            "2. जिल्हा विधी सेवा प्राधिकरण (DLSA) कार्यालयात जा\n"
+            "3. तालुका/उपजिल्हा विधी सेवा समितीशी संपर्क करा\n"
+            "4. जवळच्या न्यायालयात - प्रत्येक न्यायालयात लीगल एड क्लिनिक आहे\n"
+            "मोफत मध्यस्थी आणि लोक अदालतद्वारे लांबलचक खटल्याशिवाय प्रकरण मिटवा."
+        ),
+        "text_ta": (
+            "இந்தியாவில் வழக்கறிஞர் கட்டணம் கட்ட இயலாத ஒவ்வொரு குடிமகனுக்கும் இலவச சட்ட உதவி பெறும் உரிமை உண்டு. இது அரசியலமைப்பின் 39A கட்டுரையின் கீழ் அடிப்படை உரிமை.\n"
+            "யாருக்கு இலவச உதவி கிடைக்கும்:\n"
+            "- SC/ST நபர்கள்\n"
+            "- பெண்கள் மற்றும் குழந்தைகள்\n"
+            "- மாற்றுத்திறனாளிகள்\n"
+            "- கடத்தல், பேரிடர், வன்முறை பாதிக்கப்பட்டவர்கள்\n"
+            "- காவலிலோ தடுத்துவைக்கப்பட்டவர்கள்\n"
+            "- ஆண்டுக்கு 1 லட்சம் ரூபாய்க்கும் குறைவான வருமானமுள்ளவர்கள்\n"
+            "எப்படி பெறுவது:\n"
+            "1. NALSA உதவி எண்: 15100 (இலவசம்) அழைக்கவும்\n"
+            "2. மாவட்ட சட்ட சேவை ஆணையம் (DLSA) அலுவலகம் செல்லுங்கள்\n"
+            "3. தாலுக்கா/துணைமாவட்ட சட்ட சேவைக் குழுவை தொடர்பு கொள்ளுங்கள்\n"
+            "4. அருகிலுள்ள நீதிமன்றம் - ஒவ்வொரு நீதிமன்றத்திலும் சட்ட உதவி மையம் உண்டு\n"
+            "இலவச மத்தியஸ்தம் மற்றும் லோக் அதாலத் மூலம் நீண்ட வழக்கு இன்றி தீர்வு காணலாம்."
+        ),
+        "helpline": "15100",
+        "website": "nalsa.gov.in",
+    },
+
+    # ── 9. LEGAL RIGHTS – RTI FILING ─────────────────────────────────────
+    {
+        "scheme_id": "rti-right-to-information",
+        "section_id": "overview",
+        "category": "legal",
+        "name_en": "Right to Information (RTI) – How to File",
+        "name_hi": "सूचना का अधिकार (RTI) – कैसे दर्ज करें",
+        "text_en": (
+            "The Right to Information Act 2005 gives every Indian citizen the right to ask for information from any government office.\n"
+            "You can use RTI to:\n"
+            "- Know the status of your PM-Kisan, Ayushman card, ration card, pension, or any government benefit\n"
+            "- Ask why your application was rejected\n"
+            "- Get copies of government documents related to your area\n"
+            "- Check government spending in your village or ward\n"
+            "How to file RTI:\n"
+            "1. ONLINE: Go to rtionline.gov.in. Register and submit your application. Pay Rs 10 online.\n"
+            "2. BY POST: Write a simple letter to the Public Information Officer (PIO) of the concerned department. Pay Rs 10 by postal order or demand draft.\n"
+            "3. IN PERSON: Submit at the department office. Get a receipt.\n"
+            "Rules:\n"
+            "- Response must come within 30 days (48 hours for life-threatening matters)\n"
+            "- BPL families are exempt from the Rs 10 fee\n"
+            "- If no response or dissatisfied, file First Appeal with Appellate Authority, then Second Appeal with Central/State Information Commission\n"
+            "RTI helpline: 011-2616-5554. Online portal: rtionline.gov.in"
+        ),
+        "text_hi": (
+            "सूचना का अधिकार अधिनियम 2005 हर भारतीय नागरिक को सरकारी दफ्तरों से जानकारी मांगने का हक देता है।\n"
+            "आप RTI से कर सकते हैं:\n"
+            "- पीएम किसान, आयुष्मान कार्ड, राशन कार्ड, पेंशन की स्थिति जानना\n"
+            "- आवेदन अस्वीकार होने का कारण पूछना\n"
+            "- सरकारी दस्तावेजों की कॉपी लेना\n"
+            "- गांव या वार्ड में सरकारी खर्च की जांच करना\n"
+            "RTI कैसे दर्ज करें:\n"
+            "1. ऑनलाइन: rtionline.gov.in पर जाएं। पंजीकरण करें और आवेदन भेजें। 10 रुपये ऑनलाइन भुगतान।\n"
+            "2. डाक से: संबंधित विभाग के जन सूचना अधिकारी (PIO) को साधारण पत्र लिखें। पोस्टल ऑर्डर या डिमांड ड्राफ्ट से 10 रुपये भेजें।\n"
+            "3. व्यक्तिगत रूप से: विभाग कार्यालय में जमा करें। रसीद लें।\n"
+            "नियम:\n"
+            "- 30 दिन में जवाब देना जरूरी (जीवन-मृत्यु के मामले में 48 घंटे)\n"
+            "- बीपीएल परिवारों को 10 रुपये की फीस नहीं\n"
+            "- जवाब न मिले तो प्रथम अपील, फिर केंद्रीय/राज्य सूचना आयोग में द्वितीय अपील\n"
+            "RTI हेल्पलाइन: 011-2616-5554। पोर्टल: rtionline.gov.in"
+        ),
+        "text_mr": (
+            "माहितीचा अधिकार कायदा 2005 प्रत्येक भारतीय नागरिकाला कोणत्याही सरकारी कार्यालयाकडून माहिती मागण्याचा हक्क देतो.\n"
+            "RTI चा वापर कशासाठी:\n"
+            "- पीएम किसान, आयुष्मान कार्ड, रेशन कार्ड, पेन्शनची स्थिती जाणून घेणे\n"
+            "- अर्ज नाकारल्याचे कारण विचारणे\n"
+            "- सरकारी कागदपत्रांच्या प्रती मिळवणे\n"
+            "- गाव किंवा वार्डातील सरकारी खर्च तपासणे\n"
+            "RTI कसा दाखल करायचा:\n"
+            "1. ऑनलाइन: rtionline.gov.in वर जा. नोंदणी करा आणि अर्ज पाठवा. 10 रुपये ऑनलाइन भरा.\n"
+            "2. टपालाने: संबंधित विभागाच्या जन माहिती अधिकाऱ्याला (PIO) सरळ पत्र लिहा. पोस्टल ऑर्डरने 10 रुपये पाठवा.\n"
+            "3. प्रत्यक्ष: विभाग कार्यालयात सादर करा. पावती घ्या.\n"
+            "नियम:\n"
+            "- 30 दिवसांत उत्तर द्यावे लागते (जीवनघातक प्रकरणात 48 तास)\n"
+            "- बीपीएल कुटुंबांना 10 रुपये शुल्क नाही\n"
+            "- उत्तर न मिळाल्यास प्रथम अपील, मग केंद्रीय/राज्य माहिती आयोगाकडे द्वितीय अपील\n"
+            "RTI हेल्पलाइन: 011-2616-5554. पोर्टल: rtionline.gov.in"
+        ),
+        "text_ta": (
+            "தகவல் அறியும் உரிமைச் சட்டம் 2005 ஒவ்வொரு இந்திய குடிமகனுக்கும் எந்தவொரு அரசு அலுவலகத்திடம் இருந்தும் தகவல் கேட்கும் உரிமை அளிக்கிறது.\n"
+            "RTI மூலம் என்ன செய்யலாம்:\n"
+            "- பிஎம் கிசான், ஆயுஷ்மான் அட்டை, ரேஷன் அட்டை, ஓய்வூதியம் நிலையை அறிதல்\n"
+            "- விண்ணப்பம் நிராகரிக்கப்பட்ட காரணம் கேட்டல்\n"
+            "- அரசு ஆவணங்களின் நகல் பெறுதல்\n"
+            "- கிராமம் அல்லது வார்டில் அரசு செலவினம் சரிபார்த்தல்\n"
+            "RTI எப்படி தாக்கல் செய்வது:\n"
+            "1. ஆன்லைனில்: rtionline.gov.in செல்லுங்கள். பதிவு செய்து விண்ணப்பம் அனுப்புங்கள். 10 ரூபாய் ஆன்லைனில் செலுத்தவும்.\n"
+            "2. தபாலில்: சம்பந்தப்பட்ட துறையின் பொது தகவல் அதிகாரிக்கு (PIO) எளிய கடிதம் எழுதவும். தபால் ஒர்டரில் 10 ரூபாய் அனுப்பவும்.\n"
+            "3. நேரில்: துறை அலுவலகத்தில் சமர்ப்பிக்கவும். ரசீது வாங்கவும்.\n"
+            "விதிகள்:\n"
+            "- 30 நாட்களில் பதில் வர வேண்டும் (உயிருக்கு ஆபத்தான விஷயங்களில் 48 மணி நேரம்)\n"
+            "- BPL குடும்பங்களுக்கு 10 ரூபாய் கட்டணம் இல்லை\n"
+            "- பதில் இல்லை என்றால் முதல் மேல்முறையீடு, பிறகு மத்திய/மாநில தகவல் ஆணையத்தில் இரண்டாவது மேல்முறையீடு\n"
+            "RTI உதவி: 011-2616-5554. வலைதளம்: rtionline.gov.in"
+        ),
+        "helpline": "1800-11-6153",
+        "website": "rtionline.gov.in",
+    },
+
+    # ── 10. AGRICULTURE – MSP RATES ──────────────────────────────────────
+    {
+        "scheme_id": "msp-minimum-support-price",
+        "section_id": "overview",
+        "category": "agriculture",
+        "name_en": "Minimum Support Price (MSP) – What It Is and Current Rates",
+        "name_hi": "न्यूनतम समर्थन मूल्य (MSP) – क्या है और वर्तमान रेट",
+        "text_en": (
+            "Minimum Support Price (MSP) is the government-guaranteed price farmers get for their crops. "
+            "If market prices fall below MSP, the government buys the crop at MSP. "
+            "MSP rates are decided by CACP (Commission for Agricultural Costs and Prices) and announced before the sowing season.\n"
+            "Key Kharif 2024-25 MSP rates (approximate):\n"
+            "- Paddy (Common): Rs 2300/quintal\n"
+            "- Paddy (Grade A): Rs 2320/quintal\n"
+            "- Jowar (Hybrid): Rs 3371/quintal\n"
+            "- Bajra: Rs 2625/quintal\n"
+            "- Maize: Rs 2225/quintal\n"
+            "- Moong: Rs 8682/quintal\n"
+            "- Urad: Rs 7400/quintal\n"
+            "- Cotton (Medium): Rs 7121/quintal\n"
+            "- Sugarcane (FRP): Rs 340/quintal\n"
+            "Key Rabi 2024-25 MSP rates:\n"
+            "- Wheat: Rs 2275/quintal\n"
+            "- Barley: Rs 1735/quintal\n"
+            "- Gram (Chana): Rs 5440/quintal\n"
+            "- Lentil (Masur): Rs 6425/quintal\n"
+            "- Mustard/Rapeseed: Rs 5950/quintal\n"
+            "How to sell at MSP: Register on PM-KISAN portal or State APMCs. Contact your nearest mandi or FCI procurement centre. "
+            "Check current MSP: dacfw.nic.in or call Kisan Call Centre 1800-180-1551."
+        ),
+        "text_hi": (
+            "न्यूनतम समर्थन मूल्य (MSP) वह सरकारी गारंटी मूल्य है जो किसानों को उनकी फसल पर मिलती है। "
+            "बाजार मूल्य MSP से नीचे जाने पर सरकार MSP पर फसल खरीदती है।\n"
+            "मुख्य खरीफ 2024-25 MSP दर (अनुमानित):\n"
+            "- धान (सामान्य): 2300 रु/क्विंटल\n"
+            "- धान (ग्रेड A): 2320 रु/क्विंटल\n"
+            "- ज्वार (हाइब्रिड): 3371 रु/क्विंटल\n"
+            "- बाजरा: 2625 रु/क्विंटल\n"
+            "- मक्का: 2225 रु/क्विंटल\n"
+            "- मूंग: 8682 रु/क्विंटल\n"
+            "- उड़द: 7400 रु/क्विंटल\n"
+            "- कपास (मध्यम): 7121 रु/क्विंटल\n"
+            "- गन्ना (FRP): 340 रु/क्विंटल\n"
+            "मुख्य रबी 2024-25 MSP दर:\n"
+            "- गेहूं: 2275 रु/क्विंटल\n"
+            "- जौ: 1735 रु/क्विंटल\n"
+            "- चना: 5440 रु/क्विंटल\n"
+            "- मसूर: 6425 रु/क्विंटल\n"
+            "- सरसों/रेपसीड: 5950 रु/क्विंटल\n"
+            "MSP पर बेचने के लिए: PM-KISAN पोर्टल या राज्य APMC पर पंजीकरण करें। "
+            "नजदीकी मंडी या FCI खरीद केंद्र से संपर्क करें। "
+            "वर्तमान MSP: dacfw.nic.in या किसान कॉल सेंटर 1800-180-1551 पर कॉल करें।"
+        ),
+        "text_mr": (
+            "किमान आधारभूत किंमत (MSP) ही सरकारने शेतकऱ्यांना त्यांच्या पिकासाठी दिलेली हमी किंमत आहे. "
+            "बाजारभाव MSP पेक्षा खाली गेल्यास सरकार MSP वर पीक खरेदी करते.\n"
+            "मुख्य खरीप 2024-25 MSP दर (अंदाजे):\n"
+            "- भात (सामान्य): 2300 रु/क्विंटल\n"
+            "- भात (ग्रेड A): 2320 रु/क्विंटल\n"
+            "- ज्वारी (हायब्रीड): 3371 रु/क्विंटल\n"
+            "- बाजरी: 2625 रु/क्विंटल\n"
+            "- मका: 2225 रु/क्विंटल\n"
+            "- मूग: 8682 रु/क्विंटल\n"
+            "- उडीद: 7400 रु/क्विंटल\n"
+            "- कापूस (मध्यम): 7121 रु/क्विंटल\n"
+            "- उस (FRP): 340 रु/क्विंटल\n"
+            "मुख्य रब्बी 2024-25 MSP दर:\n"
+            "- गहू: 2275 रु/क्विंटल\n"
+            "- जव: 1735 रु/क्विंटल\n"
+            "- हरभरा: 5440 रु/क्विंटल\n"
+            "- मसूर: 6425 रु/क्विंटल\n"
+            "- मोहरी/रेपसीड: 5950 रु/क्विंटल\n"
+            "MSP वर विकण्यासाठी: PM-KISAN पोर्टल किंवा राज्य APMC वर नोंदणी करा. "
+            "जवळच्या मंडी किंवा FCI खरेदी केंद्राशी संपर्क करा. "
+            "सद्य MSP: dacfw.nic.in किंवा किसान कॉल सेंटर 1800-180-1551 वर कॉल करा."
+        ),
+        "text_ta": (
+            "குறைந்தபட்ச ஆதரவு விலை (MSP) என்பது விவசாயிகளின் பயிர்களுக்கு அரசு உத்தரவாதம் அளிக்கும் விலை. "
+            "சந்தை விலை MSP-ஐ விட குறைந்தால் அரசு MSP விலையில் பயிரை வாங்குகிறது.\n"
+            "முக்கிய கரிப் 2024-25 MSP விலைகள் (தோராயம்):\n"
+            "- நெல் (சாதாரண): 2300 ரூ/குவிண்டால்\n"
+            "- நெல் (கிரேட் A): 2320 ரூ/குவிண்டால்\n"
+            "- சோளம் (ஹைப்ரிட்): 3371 ரூ/குவிண்டால்\n"
+            "- கம்பு: 2625 ரூ/குவிண்டால்\n"
+            "- மக்காச்சோளம்: 2225 ரூ/குவிண்டால்\n"
+            "- பாசிப்பயறு: 8682 ரூ/குவிண்டால்\n"
+            "- உளுந்து: 7400 ரூ/குவிண்டால்\n"
+            "- பருத்தி (நடுத்தரம்): 7121 ரூ/குவிண்டால்\n"
+            "- கரும்பு (FRP): 340 ரூ/குவிண்டால்\n"
+            "முக்கிய ரபி 2024-25 MSP விலைகள்:\n"
+            "- கோதுமை: 2275 ரூ/குவிண்டால்\n"
+            "- வாற்கோதுமை: 1735 ரூ/குவிண்டால்\n"
+            "- கொண்டைக்கடலை: 5440 ரூ/குவிண்டால்\n"
+            "- மசூர் பருப்பு: 6425 ரூ/குவிண்டால்\n"
+            "- கடுகு/ரேப்சீட்: 5950 ரூ/குவிண்டால்\n"
+            "MSP விலையில் விற்க: PM-KISAN தளம் அல்லது மாநில APMC-ல் பதிவு செய்யுங்கள். "
+            "அருகிலுள்ள மண்டி அல்லது FCI கொள்முதல் மையத்தை தொடர்பு கொள்ளுங்கள். "
+            "தற்போதைய MSP: dacfw.nic.in அல்லது கிசான் கால் சென்டர் 1800-180-1551."
+        ),
+        "helpline": "1800-180-1551",
+        "website": "dacfw.nic.in",
+    },
+
+    # ── 11. AGRICULTURE – KISAN CREDIT CARD ─────────────────────────────
+    {
+        "scheme_id": "kisan-credit-card",
+        "section_id": "overview",
+        "category": "agriculture",
+        "name_en": "Kisan Credit Card (KCC) – Farm Loan at Low Interest",
+        "name_hi": "किसान क्रेडिट कार्ड (KCC) – कम ब्याज पर खेती ऋण",
+        "text_en": (
+            "Kisan Credit Card (KCC) gives farmers short-term credit for buying seeds, fertilizers, pesticides, and farm equipment. "
+            "Interest rate is only 4% per year for timely repayment (government gives 3% interest subvention). "
+            "KCC also provides accident insurance of Rs 50,000 and death coverage of Rs 25,000.\n"
+            "Credit limit: Based on land holding and crop area. "
+            "Typically Rs 1.6 lakh can be given without collateral for farming families.\n"
+            "Who can get KCC:\n"
+            "- All farmers who own or lease cultivable land\n"
+            "- Tenant farmers, sharecroppers with Kisan Credit Card eligibility\n"
+            "- Allied activity farmers (fishermen, animal husbandry)\n"
+            "How to apply:\n"
+            "1. Go to any bank (Nationalised, Regional Rural, Co-operative) with Aadhaar, land documents, bank account\n"
+            "2. Apply online at pm-kisan.gov.in > KCC section, or udyamimitra.in\n"
+            "3. Sanctioned within 14 days\n"
+            "Documents: Aadhaar, PAN, land ownership/lease document, passport photo, bank account details. "
+            "PM-KISAN beneficiaries get KCC automatically - check at your bank. "
+            "Helpline: 1800-180-1551 (Kisan Call Centre)"
+        ),
+        "text_hi": (
+            "किसान क्रेडिट कार्ड (KCC) किसानों को बीज, खाद, कीटनाशक और खेती उपकरण खरीदने के लिए अल्पकालीन ऋण देता है। "
+            "समय पर चुकाने पर केवल 4% वार्षिक ब्याज (सरकार 3% सब्सिडी देती है)। "
+            "KCC में 50,000 रुपये का दुर्घटना बीमा और 25,000 रुपये का मृत्यु बीमा भी है।\n"
+            "ऋण सीमा: जमीन और फसल क्षेत्र के आधार पर। खेतीहर परिवारों को बिना गारंटी 1.6 लाख रुपये तक।\n"
+            "कौन पाता है:\n"
+            "- अपनी या पट्टे की कृषि भूमि वाले सभी किसान\n"
+            "- बटाईदार और किरायेदार किसान\n"
+            "- मछुआरे और पशुपालक किसान\n"
+            "कैसे आवेदन करें:\n"
+            "1. किसी भी बैंक में आधार, जमीन कागजात, बैंक खाता लेकर जाएं\n"
+            "2. pm-kisan.gov.in > KCC section पर या udyamimitra.in पर ऑनलाइन आवेदन करें\n"
+            "3. 14 दिनों में स्वीकृति\n"
+            "दस्तावेज: आधार, पैन, जमीन दस्तावेज, फोटो, बैंक जानकारी। "
+            "पीएम किसान लाभार्थियों को KCC स्वचालित रूप से मिलती है। "
+            "हेल्पलाइन: 1800-180-1551 (किसान कॉल सेंटर)"
+        ),
+        "text_mr": (
+            "किसान क्रेडिट कार्ड (KCC) शेतकऱ्यांना बियाणे, खते, कीटकनाशके आणि कृषी उपकरणे खरेदीसाठी अल्पमुदत कर्ज देतो. "
+            "वेळेवर परत केल्यावर फक्त 4% वार्षिक व्याज (सरकार 3% सब्सिडी देते). "
+            "KCC मध्ये 50,000 रुपये अपघात विमा आणि 25,000 रुपये मृत्यू बीमाही असतो.\n"
+            "कर्ज मर्यादा: जमीन आणि पीक क्षेत्रावर आधारित. शेतकरी कुटुंबांना तारणाशिवाय 1.6 लाखापर्यंत.\n"
+            "कोणाला मिळतो:\n"
+            "- स्वतःच्या किंवा भाडेपट्ट्याच्या जमिनीवरील सर्व शेतकरी\n"
+            "- वाटेकरी आणि भाडेकरू शेतकरी\n"
+            "- मत्स्यपालक आणि पशुपालक शेतकरी\n"
+            "अर्ज कसा करायचा:\n"
+            "1. कोणत्याही बँकेत आधार, जमिनीचे कागदपत्रे, बँक खाते घेऊन जा\n"
+            "2. pm-kisan.gov.in > KCC section वर किंवा udyamimitra.in वर ऑनलाइन अर्ज करा\n"
+            "3. 14 दिवसांत मंजुरी\n"
+            "कागदपत्रे: आधार, पॅन, जमीन कागदपत्रे, फोटो, बँक माहिती. "
+            "पीएम किसान लाभार्थ्यांना KCC आपोआप मिळतो. "
+            "हेल्पलाइन: 1800-180-1551"
+        ),
+        "text_ta": (
+            "கிசான் கிரெடிட் கார்டு (KCC) விவசாயிகளுக்கு விதைகள், உரங்கள், பூச்சிக்கொல்லிகள் மற்றும் பண்ணை உபகரணங்கள் வாங்க குறுகிய கால கடன் கொடுக்கிறது. "
+            "சரியான நேரத்தில் திருப்பிச் செலுத்தினால் ஆண்டுக்கு 4% வட்டி மட்டுமே (அரசு 3% மானியம் கொடுக்கிறது). "
+            "KCC-ல் 50,000 ரூபாய் விபத்துக் காப்பீடு மற்றும் 25,000 ரூபாய் மரண காப்பீடும் உண்டு.\n"
+            "கடன் வரம்பு: நிலம் மற்றும் பயிர் பரப்பின் அடிப்படையில். பிணையம் இல்லாமல் 1.6 லட்சம் ரூபாய் வரை.\n"
+            "யாருக்கு கிடைக்கும்:\n"
+            "- சொந்த அல்லது குத்தகை விவசாய நிலம் உள்ள அனைத்து விவசாயிகளும்\n"
+            "- பங்கு விவசாயிகள் மற்றும் குத்தகை விவசாயிகள்\n"
+            "- மீனவர்கள் மற்றும் கால்நடை வளர்ப்பு விவசாயிகள்\n"
+            "எப்படி விண்ணப்பிப்பது:\n"
+            "1. எந்த வங்கியிலும் ஆதார், நில ஆவணங்கள், வங்கிக் கணக்குடன் செல்லுங்கள்\n"
+            "2. pm-kisan.gov.in > KCC பிரிவு அல்லது udyamimitra.in-ல் ஆன்லைனில் விண்ணப்பியுங்கள்\n"
+            "3. 14 நாட்களில் ஒப்புதல்\n"
+            "PM-KISAN பயனாளிகளுக்கு KCC தானாகவே கிடைக்கும். "
+            "உதவி: 1800-180-1551 (கிசான் கால் சென்டர்)"
+        ),
+        "helpline": "1800-180-1551",
+        "website": "pmkisan.gov.in",
+    },
+
+    # ── 12. AGRICULTURE – PMFBY CLAIM PROCESS ───────────────────────────
+    {
+        "scheme_id": "pmfby-claim-process",
+        "section_id": "faqs",
+        "category": "agriculture",
+        "name_en": "PMFBY – How to Claim Crop Insurance Compensation",
+        "name_hi": "PMFBY – फसल बीमा दावा कैसे करें",
+        "text_en": (
+            "If your crop has been damaged due to flood, drought, hailstorm, pest attack, or unseasonal rain, you can claim compensation under PMFBY.\n"
+            "Steps to claim:\n"
+            "1. REPORT IN 72 HOURS: Notify the crop loss within 72 hours of the calamity. Report to: "
+            "(a) Your bank (if you have a KCC loan crop is auto-insured), "
+            "(b) Insurance company helpline (on your policy document), "
+            "(c) Crop Insurance app (download from Play Store), "
+            "(d) Agriculture Department / Patwari.\n"
+            "2. HOW TO REPORT: Call PMFBY helpline 14447. "
+            "Or use the Crop Insurance app: take photos of damaged crop with GPS location. "
+            "Or call your bank's agriculture department.\n"
+            "3. JOINT SURVEY: After your report, an insurance company survey will be done. "
+            "Make sure you are present during the survey.\n"
+            "4. COMPENSATION: Compensation is calculated based on area crop cutting experiments. "
+            "Money comes directly to your bank account within 2 months of survey.\n"
+            "5. DOCUMENTS FOR CLAIM: Aadhaar, bank passbook, land documents, crop sowing certificate, "
+            "photographs of damage, FIR or revenue record (for localised calamity like hailstorm).\n"
+            "Important: You must report loss within 72 hours for individual calamity. For widespread calamity (flood/drought), state government informs insurer directly.\n"
+            "PMFBY helpline: 14447. Website: pmfby.gov.in. Crop Insurance App available on Google Play Store."
+        ),
+        "text_hi": (
+            "अगर आपकी फसल बाढ़, सूखे, ओलावृष्टि, कीट हमले या बेमौसम बारिश से बर्बाद हुई है, तो PMFBY के तहत मुआवजा मांग सकते हैं।\n"
+            "दावा करने के चरण:\n"
+            "1. 72 घंटों में सूचना दें: नुकसान की जानकारी आपदा के 72 घंटे के भीतर दें - "
+            "(a) बैंक (KCC लोन है तो फसल अपने आप बीमित है), "
+            "(b) बीमा कंपनी हेल्पलाइन (पॉलिसी डॉक्यूमेंट पर नंबर), "
+            "(c) Crop Insurance app (Play Store से डाउनलोड), "
+            "(d) कृषि विभाग / पटवारी।\n"
+            "2. कैसे सूचना दें: PMFBY हेल्पलाइन 14447 पर कॉल करें। "
+            "या Crop Insurance app पर GPS से फोटो लें। "
+            "या बैंक के कृषि विभाग से संपर्क करें।\n"
+            "3. संयुक्त सर्वेक्षण: रिपोर्ट के बाद बीमा कंपनी सर्वे करेगी। सर्वे के समय मौजूद रहें।\n"
+            "4. मुआवजा: फसल काटने के प्रयोगों के आधार पर तय होता है। सर्वे के 2 महीने के भीतर बैंक में पैसे आते हैं।\n"
+            "5. दावे के दस्तावेज: आधार, बैंक पासबुक, जमीन कागजात, बुआई प्रमाण पत्र, नुकसान की फोटो, FIR या राजस्व रिकॉर्ड।\n"
+            "जरूरी: व्यक्तिगत आपदा (ओलावृष्टि) के लिए 72 घंटे में रिपोर्ट जरूरी। व्यापक आपदा (बाढ़/सूखा) के लिए राज्य सरकार बीमाकर्ता को सूचित करती है।\n"
+            "PMFBY हेल्पलाइन: 14447। वेबसाइट: pmfby.gov.in। Crop Insurance App Google Play Store पर।"
+        ),
+        "text_mr": (
+            "तुमचे पीक पूर, दुष्काळ, गारपीट, कीड किंवा अवकाळी पावसाने नष्ट झाले असल्यास PMFBY अंतर्गत नुकसानभरपाई मागता येते.\n"
+            "दावा करण्याचे टप्पे:\n"
+            "1. 72 तासांत सूचना द्या: आपत्तीच्या 72 तासांत नुकसानाची माहिती द्या - "
+            "(a) बँक (KCC कर्ज असल्यास पीक आपोआप विमाकृत), "
+            "(b) विमा कंपनी हेल्पलाइन (पॉलिसी डॉक्युमेंटवर नंबर), "
+            "(c) Crop Insurance app (Play Store वरून डाउनलोड), "
+            "(d) कृषी विभाग / पटवारी.\n"
+            "2. सूचना कशी द्यायची: PMFBY हेल्पलाइन 14447 वर कॉल करा. "
+            "Crop Insurance app वर GPS सह फोटो घ्या. बँकेच्या कृषी विभागाशी संपर्क करा.\n"
+            "3. संयुक्त सर्वेक्षण: अहवालानंतर विमा कंपनी सर्वे करेल. सर्वेक्षणावेळी उपस्थित राहा.\n"
+            "4. नुकसानभरपाई: पीक कापणी प्रयोगांवर आधारित. सर्वेनंतर 2 महिन्यांत थेट बँकेत पैसे येतात.\n"
+            "5. दाव्यासाठी कागदपत्रे: आधार, बँक पासबुक, जमीन कागदपत्रे, पेरणी प्रमाणपत्र, नुकसानीचे फोटो.\n"
+            "PMFBY हेल्पलाइन: 14447. वेबसाइट: pmfby.gov.in."
+        ),
+        "text_ta": (
+            "உங்கள் பயிர் வெள்ளம், வறட்சி, ஆலங்கட்டி மழை, பூச்சி தாக்குதல் அல்லது பருவகாலமல்லாத மழையால் பாதிக்கப்பட்டால் PMFBY-ல் இழப்பீடு கோரலாம்.\n"
+            "கோரல் படிகள்:\n"
+            "1. 72 மணி நேரத்தில் தெரிவிக்கவும்: இடர் நேர்ந்த 72 மணி நேரத்திற்குள் - "
+            "(a) வங்கி (KCC கடன் இருந்தால் பயிர் தானாகவே காப்பீடு), "
+            "(b) காப்பீட்டு நிறுவன உதவி எண் (பாலிசி ஆவணத்தில்), "
+            "(c) Crop Insurance app (Play Store-ல் பதிவிறக்கவும்), "
+            "(d) வேளாண்மைத் துறை/பட்வாரி.\n"
+            "2. எப்படி தெரிவிப்பது: PMFBY உதவி 14447 அழைக்கவும். "
+            "Crop Insurance app-ல் GPS உடன் புகைப்படம் எடுக்கவும்.\n"
+            "3. கூட்டு ஆய்வு: உங்கள் அறிக்கைக்குப் பிறகு காப்பீட்டு நிறுவனம் ஆய்வு செய்யும். ஆய்வின் போது நீங்கள் இருக்க வேண்டும்.\n"
+            "4. இழப்பீடு: பயிர் வெட்டு சோதனைகளின் அடிப்படையில் கணக்கிடப்படும். ஆய்வுக்கு 2 மாதத்திற்குள் வங்கிக் கணக்கில் வரும்.\n"
+            "5. கோரல் ஆவணங்கள்: ஆதார், வங்கி பாஸ்புக், நில ஆவணங்கள், விதைப்புச் சான்றிதழ், சேதத்தின் புகைப்படங்கள்.\n"
+            "PMFBY உதவி: 14447. வலைதளம்: pmfby.gov.in. Crop Insurance App Google Play Store-ல்."
+        ),
+        "helpline": "14447",
+        "website": "pmfby.gov.in",
+    },
 ]
 
 

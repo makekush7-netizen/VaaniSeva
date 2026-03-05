@@ -125,7 +125,7 @@ export function CallMeBack({ compact = false }) {
       {/* Disclaimer */}
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
         <p className="text-xs text-amber-700 leading-relaxed">
-          <em>VaaniSeva is in the trial phase of AI for Bharat Hackathon 2026. We're provisioning an Indian toll-free number — until then, our system will call you from a US number (+1 260 204 8966). Standard international call rates may apply. The call is completely free on our side.</em>
+          <em>VaaniSeva is in the trial phase of AI for Bharat Hackathon 2026. We're provisioning an Indian toll-free number — until then, our system will call you from a US number (+1 978 830 9619). Standard international call rates may apply. The call is completely free on our side.</em>
         </p>
       </div>
     </form>

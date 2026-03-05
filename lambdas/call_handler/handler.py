@@ -228,6 +228,12 @@ def lambda_handler(event, context):
         return handle_profile_routes(event, path)
     elif path.rstrip("/").endswith("/voice/token") or "/voice/token" in path:
         return handle_voice_token(event)
+    elif "/admin/" in path or path.rstrip("/").endswith("/admin"):
+        return handle_admin_routes(event, path)
+    elif "/voice/transcribe-token" in path:
+        return handle_transcribe_token_sts(event)
+    elif "/voice/transcribe" in path:
+        return handle_transcribe_audio(event)
 
     # ── Twilio voice endpoints ───────────────────────────────
     body = event.get("body", "")
@@ -237,10 +243,18 @@ def lambda_handler(event, context):
     else:
         params = body or {}
 
+    # Merge query-string params (e.g. lang=hi in /voice/gather?lang=hi action URL).
+    # Body params take precedence; query-string fills any gaps.
+    for k, v in (event.get("queryStringParameters") or {}).items():
+        if k not in params:
+            params[k] = v
+
     if "/incoming" in path:
         return handle_incoming(params)
     elif "/language" in path:
         return handle_language_select(params)
+    elif "/poll" in path:
+        return handle_poll(params)
     elif "/gather" in path:
         return handle_gather(params)
     else:
@@ -255,7 +269,7 @@ def cors_json_response(status_code, body):
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Headers": "Content-Type,Authorization",
-            "Access-Control-Allow-Methods": "GET,POST,PUT,OPTIONS",
+            "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
         },
         "body": json.dumps(body),
     }
@@ -316,7 +330,7 @@ def handle_call_initiate(event):
         logger.error(f"Call initiate failed: {e}")
         err = str(e).lower()
         if "unverified" in err:
-            return cors_json_response(400, {"error": "Number not verified on trial account. Call us at +1 260 204 8966."})
+            return cors_json_response(400, {"error": "Number not verified on trial account. Call us at +1 978 830 9619."})
         return cors_json_response(500, {"error": "Failed to initiate call. Please try again."})
 
 
@@ -405,6 +419,28 @@ def handle_voice_token(event):
         return cors_json_response(500, {"error": "Failed to generate call token"})
 
 
+def _ensure_chat_session(session_id: str, language: str):
+    """Create a DynamoDB session record for /chat if one doesn't exist yet."""
+    if not session_id:
+        return
+    try:
+        calls_table.put_item(
+            Item={
+                "call_id": session_id,
+                "timestamp": 0,
+                "language": language,
+                "conversation_history": [],
+                "queries_count": 0,
+                "source": "web",
+                "created_at": int(datetime.now().timestamp()),
+                "ttl": int(datetime.now().timestamp()) + 86400,  # 24-hour TTL
+            },
+            ConditionExpression="attribute_not_exists(call_id)"
+        )
+    except Exception:
+        pass  # Item already exists — that's fine
+
+
 def handle_chat(event):
     """POST /chat — Text-based chat for web fallback."""
     try:
@@ -419,6 +455,9 @@ def handle_chat(event):
     if not query:
         return cors_json_response(400, {"error": "Empty query"})
 
+    # Ensure a session record exists so conversation history can be stored
+    _ensure_chat_session(session_id, language)
+
     # Optional: inject user profile context if authenticated
     user_profile = _get_user_from_event(event)
     profile_context = _build_profile_context(user_profile) if user_profile else ""
@@ -429,6 +468,10 @@ def handle_chat(event):
         logger.error(f"Chat RAG error: {e}")
         answer = "I'm having trouble right now. Please try again."
 
+    # Persist this turn to conversation history
+    if session_id:
+        log_query(session_id, query, answer, language)
+
     # Generate TTS audio
     audio_url = sarvam_tts(answer, language)
 
@@ -437,6 +480,508 @@ def handle_chat(event):
         "audio_url": audio_url or "",
         "language": language,
     })
+
+
+# ══════════════════════════════════════════════════════════════
+#  Transcribe endpoints — browser voice console (no Twilio)
+# ══════════════════════════════════════════════════════════════
+
+def handle_transcribe_token_sts(event):
+    """GET /voice/transcribe-token — Temporary STS creds for browser-side Transcribe."""
+    try:
+        sts = boto3.client("sts", region_name=os.environ["AWS_REGION"])
+        resp = sts.get_session_token(DurationSeconds=3600)
+        creds = resp["Credentials"]
+        return cors_json_response(200, {
+            "access_key_id": creds["AccessKeyId"],
+            "secret_access_key": creds["SecretAccessKey"],
+            "session_token": creds["SessionToken"],
+            "region": os.environ["AWS_REGION"],
+            "expires_in": 3600,
+        })
+    except Exception as e:
+        logger.error(f"STS transcribe-token error: {e}")
+        return cors_json_response(500, {"error": "Failed to generate transcription credentials"})
+
+
+def handle_transcribe_audio(event):
+    """POST /voice/transcribe — Server-side audio transcription via Amazon Transcribe."""
+    try:
+        body = json.loads(event.get("body", "{}"))
+    except (json.JSONDecodeError, TypeError):
+        return cors_json_response(400, {"error": "Invalid JSON body"})
+
+    audio_b64 = body.get("audio", "")
+    language = body.get("language", "hi")
+    audio_format = body.get("format", "webm")
+
+    if not audio_b64:
+        return cors_json_response(400, {"error": "No audio data provided"})
+
+    lang_map = {"hi": "hi-IN", "mr": "mr-IN", "ta": "ta-IN", "en": "en-IN"}
+    lang_code = lang_map.get(language, "hi-IN")
+
+    valid_formats = {"webm", "ogg", "wav", "mp3", "mp4", "flac", "amr"}
+    if audio_format not in valid_formats:
+        audio_format = "webm"
+
+    try:
+        audio_bytes = base64.b64decode(audio_b64)
+    except Exception:
+        return cors_json_response(400, {"error": "Invalid base64 audio"})
+
+    audio_key = f"transcribe-tmp/{uuid.uuid4()}.{audio_format}"
+    content_type_map = {
+        "webm": "audio/webm", "ogg": "audio/ogg", "wav": "audio/wav",
+        "mp3": "audio/mpeg", "mp4": "audio/mp4", "flac": "audio/flac", "amr": "audio/amr",
+    }
+    content_type = content_type_map.get(audio_format, "audio/webm")
+
+    try:
+        s3_client.put_object(
+            Bucket=S3_BUCKET, Key=audio_key, Body=audio_bytes, ContentType=content_type
+        )
+
+        tc = boto3.client("transcribe", region_name=os.environ["AWS_REGION"])
+        job_name = f"vs-{uuid.uuid4().hex[:16]}"
+        audio_uri = f"s3://{S3_BUCKET}/{audio_key}"
+
+        tc.start_transcription_job(
+            TranscriptionJobName=job_name,
+            Media={"MediaFileUri": audio_uri},
+            MediaFormat=audio_format,
+            LanguageCode=lang_code,
+        )
+
+        # Poll up to 25 seconds (safe within Lambda timeout)
+        transcript = ""
+        for _ in range(17):
+            time.sleep(1.5)
+            result = tc.get_transcription_job(TranscriptionJobName=job_name)
+            status = result["TranscriptionJob"]["TranscriptionJobStatus"]
+            if status == "COMPLETED":
+                transcript_uri = result["TranscriptionJob"]["Transcript"]["TranscriptFileUri"]
+                tr_resp = requests.get(transcript_uri, timeout=5)
+                transcript = tr_resp.json()["results"]["transcripts"][0]["transcript"]
+                break
+            elif status == "FAILED":
+                reason = result["TranscriptionJob"].get("FailureReason", "Unknown")
+                logger.error(f"Transcription job failed: {reason}")
+                return cors_json_response(500, {"error": f"Transcription failed: {reason}"})
+
+        # Clean up (fire-and-forget)
+        def _cleanup():
+            try:
+                s3_client.delete_object(Bucket=S3_BUCKET, Key=audio_key)
+                tc.delete_transcription_job(TranscriptionJobName=job_name)
+            except Exception:
+                pass
+        threading.Thread(target=_cleanup, daemon=True).start()
+
+        if not transcript:
+            return cors_json_response(408, {"error": "Transcription timed out. Please try a shorter recording."})
+
+        return cors_json_response(200, {"transcript": transcript, "language": language})
+
+    except Exception as e:
+        logger.error(f"Transcribe error: {e}")
+        return cors_json_response(500, {"error": "Failed to transcribe audio"})
+
+
+# ══════════════════════════════════════════════════════════════
+#  Admin routes — /admin/rag CRUD + AI Review
+# ══════════════════════════════════════════════════════════════
+
+def handle_admin_routes(event, path):
+    """Route /admin/* requests. Requires admin JWT."""
+    user, err = _require_admin(event)
+    if err:
+        return err
+
+    http_method = event.get("httpMethod", "GET")
+
+    # Parse segments after "admin" in path
+    parts = [p for p in path.split("/") if p]
+    try:
+        admin_idx = parts.index("admin")
+        after_admin = parts[admin_idx + 1:]
+    except ValueError:
+        return cors_json_response(404, {"error": "Not found"})
+
+    if not after_admin or after_admin[0] != "rag":
+        return cors_json_response(404, {"error": "Not found"})
+
+    rag_tail = after_admin[1:]  # segments after "rag"
+
+    if not rag_tail:
+        # /admin/rag
+        if http_method == "GET":
+            return _handle_admin_list_rag(event)
+        elif http_method == "POST":
+            return _handle_admin_create_rag(event, user)
+    elif len(rag_tail) == 1:
+        # /admin/rag/{id}
+        entry_id = rag_tail[0]
+        if http_method == "PUT":
+            return _handle_admin_update_rag(event, entry_id)
+        elif http_method == "DELETE":
+            return _handle_admin_delete_rag(entry_id)
+        elif http_method == "GET":
+            return _handle_admin_get_rag(entry_id)
+    elif len(rag_tail) == 2:
+        # /admin/rag/{id}/{action}
+        entry_id, action = rag_tail[0], rag_tail[1]
+        if action == "verify" and http_method == "POST":
+            return _handle_admin_verify_rag(event, entry_id, user)
+        elif action == "ai-review" and http_method == "POST":
+            return _handle_admin_ai_review(entry_id)
+
+    return cors_json_response(405, {"error": "Method not allowed"})
+
+
+def _require_admin(event):
+    """Returns (user, None) if admin, (None, error_response) otherwise."""
+    user = _get_user_from_event(event)
+    if not user:
+        return None, cors_json_response(401, {"error": "Unauthorized. Please log in."})
+    if not user.get("is_admin"):
+        return None, cors_json_response(403, {"error": "Admin access required."})
+    return user, None
+
+
+def _parse_rag_key(entry_id: str) -> tuple:
+    """Parse entry_id (format: scheme_id~section_id) into DynamoDB key. Handles legacy UUID-only ids."""
+    if "~" in entry_id:
+        scheme_id, section_id = entry_id.split("~", 1)
+        return scheme_id, section_id
+    return entry_id, "admin"
+
+
+def _handle_admin_list_rag(event):
+    """GET /admin/rag — List all knowledge entries (paginated)."""
+    params = event.get("queryStringParameters") or {}
+    category_filter = params.get("category", "")
+    verified_filter = params.get("verified", "")
+    keyword = params.get("q", "").lower()
+    limit = min(int(params.get("limit", 200)), 500)
+
+    try:
+        result = knowledge_table.scan(Limit=limit)
+        items = result.get("Items", [])
+
+        # Normalise: every item gets a composite id = scheme_id~section_id so the
+        # frontend can round-trip it back for PUT/DELETE/verify/ai-review.
+        for item in items:
+            sid = item.get("scheme_id", "unknown")
+            sec = item.get("section_id", "overview")
+            item["id"] = f"{sid}~{sec}"
+            item.pop("embedding", None)
+            # Normalise title — seed data uses name_en/name_hi instead of title
+            if not item.get("title"):
+                item["title"] = item.get("name_en") or item.get("name_hi") or sid
+            # Normalise helpline_numbers — seed data uses helpline (singular string)
+            if not item.get("helpline_numbers") and item.get("helpline"):
+                item["helpline_numbers"] = [str(item["helpline"])]
+
+        # Apply filters
+        if category_filter:
+            items = [i for i in items if i.get("category", "") == category_filter]
+        if verified_filter in ("true", "false"):
+            want_verified = verified_filter == "true"
+            items = [i for i in items if bool(i.get("verified")) == want_verified]
+        if keyword:
+            items = [
+                i for i in items
+                if keyword in (i.get("title", "") or i.get("name_en", "") or "").lower()
+                or keyword in (i.get("text_en", "") or "").lower()
+                or keyword in (i.get("text_hi", "") or "").lower()
+                or keyword in (i.get("category", "") or "").lower()
+            ]
+
+        items.sort(key=lambda x: int(x.get("created_at", x.get("updated_at", 0)) or 0), reverse=True)
+
+        return cors_json_response(200, {"items": items, "count": len(items)})
+    except Exception as e:
+        logger.error(f"Admin list RAG error: {e}")
+        return cors_json_response(500, {"error": "Failed to list entries"})
+
+
+def _handle_admin_get_rag(entry_id):
+    """GET /admin/rag/{id} — Get a single knowledge entry."""
+    try:
+        scheme_id, section_id = _parse_rag_key(entry_id)
+        result = knowledge_table.get_item(Key={"scheme_id": scheme_id, "section_id": section_id})
+        item = result.get("Item")
+        if not item:
+            return cors_json_response(404, {"error": "Entry not found"})
+        item.pop("embedding", None)
+        item["id"] = f"{item.get('scheme_id', scheme_id)}~{item.get('section_id', section_id)}"
+        # Normalise title
+        if not item.get("title"):
+            item["title"] = item.get("name_en") or item.get("name_hi") or scheme_id
+        if not item.get("helpline_numbers") and item.get("helpline"):
+            item["helpline_numbers"] = [str(item["helpline"])]
+        return cors_json_response(200, item)
+    except Exception as e:
+        logger.error(f"Admin get RAG error: {e}")
+        return cors_json_response(500, {"error": "Failed to get entry"})
+
+
+def _handle_admin_create_rag(event, user):
+    """POST /admin/rag — Create a new knowledge entry with embedding."""
+    try:
+        body = json.loads(event.get("body", "{}"))
+    except (json.JSONDecodeError, TypeError):
+        return cors_json_response(400, {"error": "Invalid JSON body"})
+
+    title = (body.get("title") or "").strip()
+    if not title:
+        return cors_json_response(400, {"error": "title is required"})
+
+    entry_id = str(uuid.uuid4())
+    now = int(time.time())
+
+    entry = {
+        # DynamoDB keys matching vaaniseva-knowledge table schema
+        "scheme_id": entry_id,
+        "section_id": "admin",
+        # Composite id so the frontend can PUT/DELETE/verify back to the right key
+        "id": f"{entry_id}~admin",
+        "category": body.get("category", "general"),
+        "title": title,
+        "text_hi": body.get("text_hi", ""),
+        "text_mr": body.get("text_mr", ""),
+        "text_ta": body.get("text_ta", ""),
+        "text_en": body.get("text_en", ""),
+        "helpline_numbers": body.get("helpline_numbers", []),
+        "source_url": body.get("source_url", ""),
+        "documents_required": body.get("documents_required", []),
+        "verified": False,
+        "verified_by": None,
+        "verified_at": None,
+        "ai_review_status": None,
+        "ai_review_notes": None,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    try:
+        knowledge_table.put_item(Item=entry)
+
+        # Generate combined embedding and save to vectors_table
+        embed_text = " ".join(filter(None, [entry["text_en"], entry["text_hi"]]))
+        if embed_text.strip():
+            try:
+                embedding = get_embedding(embed_text)
+                from decimal import Decimal
+                vectors_table.put_item(Item={
+                    "embedding_id": f"{entry_id}#admin#all",
+                    "scheme_id": entry_id,
+                    "section_id": "admin",
+                    "language": "all",
+                    "title": title,
+                    "text_hi": entry["text_hi"],
+                    "text_mr": entry["text_mr"],
+                    "text_ta": entry["text_ta"],
+                    "text_en": entry["text_en"],
+                    "embedding": [Decimal(str(round(x, 8))) for x in embedding],
+                    "category": entry["category"],
+                })
+            except Exception as emb_err:
+                logger.warning(f"Embedding generation failed (non-fatal): {emb_err}")
+
+        entry.pop("embedding", None)
+        return cors_json_response(201, entry)
+    except Exception as e:
+        logger.error(f"Admin create RAG error: {e}")
+        return cors_json_response(500, {"error": "Failed to create entry"})
+
+
+def _handle_admin_update_rag(event, entry_id):
+    """PUT /admin/rag/{id} — Update a knowledge entry."""
+    try:
+        body = json.loads(event.get("body", "{}"))
+    except (json.JSONDecodeError, TypeError):
+        return cors_json_response(400, {"error": "Invalid JSON body"})
+
+    allowed_fields = [
+        "category", "title", "text_hi", "text_mr", "text_ta", "text_en",
+        "helpline_numbers", "source_url", "documents_required",
+    ]
+    updates = {k: body[k] for k in allowed_fields if k in body}
+    if not updates:
+        return cors_json_response(400, {"error": "No valid fields to update"})
+
+    scheme_id, section_id = _parse_rag_key(entry_id)
+    updates["updated_at"] = int(time.time())
+
+    try:
+        expr_parts, expr_vals, expr_names = [], {}, {}
+        for i, (k, v) in enumerate(updates.items()):
+            an, av = f"#f{i}", f":v{i}"
+            expr_parts.append(f"{an} = {av}")
+            expr_names[an] = k
+            expr_vals[av] = v
+
+        knowledge_table.update_item(
+            Key={"scheme_id": scheme_id, "section_id": section_id},
+            UpdateExpression="SET " + ", ".join(expr_parts),
+            ExpressionAttributeNames=expr_names,
+            ExpressionAttributeValues=expr_vals,
+        )
+
+        # Re-generate embedding if text was updated
+        if any(f in updates for f in ("text_en", "text_hi", "text_mr", "text_ta")):
+            try:
+                full = knowledge_table.get_item(
+                    Key={"scheme_id": scheme_id, "section_id": section_id}
+                ).get("Item", {})
+                embed_text = " ".join(filter(None, [full.get("text_en", ""), full.get("text_hi", "")]))
+                if embed_text.strip():
+                    from decimal import Decimal
+                    embedding = get_embedding(embed_text)
+                    emb_key = f"{scheme_id}#{section_id}#all"
+                    vectors_table.update_item(
+                        Key={"embedding_id": emb_key},
+                        UpdateExpression="SET embedding = :emb, text_hi = :hi, text_mr = :mr, text_ta = :ta, text_en = :en",
+                        ExpressionAttributeValues={
+                            ":emb": [Decimal(str(round(x, 8))) for x in embedding],
+                            ":hi": full.get("text_hi", ""),
+                            ":mr": full.get("text_mr", ""),
+                            ":ta": full.get("text_ta", ""),
+                            ":en": full.get("text_en", ""),
+                        },
+                    )
+            except Exception as emb_err:
+                logger.warning(f"Embedding re-gen failed (non-fatal): {emb_err}")
+
+        result = knowledge_table.get_item(Key={"scheme_id": scheme_id, "section_id": section_id})
+        item = result.get("Item", {})
+        item.pop("embedding", None)
+        item["id"] = f"{scheme_id}~{section_id}"
+        return cors_json_response(200, item)
+    except Exception as e:
+        logger.error(f"Admin update RAG error: {e}")
+        return cors_json_response(500, {"error": "Failed to update entry"})
+
+
+def _handle_admin_delete_rag(entry_id):
+    """DELETE /admin/rag/{id} — Delete a knowledge entry."""
+    scheme_id, section_id = _parse_rag_key(entry_id)
+    try:
+        knowledge_table.delete_item(Key={"scheme_id": scheme_id, "section_id": section_id})
+        try:
+            vectors_table.delete_item(Key={"embedding_id": f"{scheme_id}#{section_id}#all"})
+        except Exception:
+            pass
+        return cors_json_response(200, {"message": "Entry deleted", "id": entry_id})
+    except Exception as e:
+        logger.error(f"Admin delete RAG error: {e}")
+        return cors_json_response(500, {"error": "Failed to delete entry"})
+
+
+def _handle_admin_verify_rag(event, entry_id, user):
+    """POST /admin/rag/{id}/verify — Mark entry as verified."""
+    scheme_id, section_id = _parse_rag_key(entry_id)
+    try:
+        now = int(time.time())
+        knowledge_table.update_item(
+            Key={"scheme_id": scheme_id, "section_id": section_id},
+            UpdateExpression="SET verified = :v, verified_by = :vb, verified_at = :va, updated_at = :ua",
+            ExpressionAttributeValues={
+                ":v": True,
+                ":vb": user.get("email", user.get("user_id", "unknown")),
+                ":va": now,
+                ":ua": now,
+            },
+        )
+        return cors_json_response(200, {
+            "message": "Entry verified",
+            "id": entry_id,
+            "verified_by": user.get("email"),
+            "verified_at": now,
+        })
+    except Exception as e:
+        logger.error(f"Admin verify RAG error: {e}")
+        return cors_json_response(500, {"error": "Failed to verify entry"})
+
+
+def _handle_admin_ai_review(entry_id):
+    """POST /admin/rag/{id}/ai-review — AI fact-check via Bedrock."""
+    try:
+        scheme_id, section_id = _parse_rag_key(entry_id)
+        result = knowledge_table.get_item(Key={"scheme_id": scheme_id, "section_id": section_id})
+        item = result.get("Item")
+
+        if not item:
+            return cors_json_response(404, {"error": "Entry not found"})
+
+        text_hi = item.get("text_hi", "")
+        text_en = item.get("text_en", "")
+        title = item.get("title") or item.get("name_en", "")
+        helplines = item.get("helpline_numbers") or ([item["helpline"]] if item.get("helpline") else [])
+
+        review_prompt = f"""You are a fact-checking agent for VaaniSeva, a voice AI for rural India.
+
+Review this knowledge base entry and check:
+1. Are phone numbers real and currently active Indian government numbers?
+2. Are eligibility criteria consistent with official govt website text?
+3. Are benefit amounts correct (cross-check your training data)?
+4. Is any information potentially harmful or dangerously wrong?
+
+Entry Title: {title}
+Helpline Numbers: {', '.join(str(h) for h in helplines) if helplines else 'None'}
+English Text: {text_en[:800]}
+Hindi Text: {text_hi[:800]}
+
+Return ONLY valid JSON (no markdown): {{"status": "PASS", "issues": [], "confidence": 0.9}}
+Status must be one of: PASS, FLAG, FAIL
+- PASS: Information appears accurate and safe
+- FLAG: Minor issues or verify manually
+- FAIL: Serious errors, dangerous misinformation, or fake phone numbers"""
+
+        response = bedrock.invoke_model(
+            modelId=BEDROCK_MODEL_ID,
+            body=json.dumps({
+                "messages": [{"role": "user", "content": [{"text": review_prompt}]}],
+                "inferenceConfig": {"maxTokens": 400, "temperature": 0.1},
+            }),
+            contentType="application/json",
+            accept="application/json",
+        )
+        raw = json.loads(response["body"].read())
+        review_text = raw["output"]["message"]["content"][0]["text"].strip()
+
+        review_text = re.sub(r"```[a-z]*", "", review_text).strip().strip("`")
+        try:
+            review_json = json.loads(review_text)
+        except json.JSONDecodeError:
+            match = re.search(r'\{.*\}', review_text, re.DOTALL)
+            if match:
+                review_json = json.loads(match.group())
+            else:
+                review_json = {"status": "FLAG", "issues": ["Could not parse AI review"], "confidence": 0.5}
+
+        status = review_json.get("status", "FLAG")
+        notes = "; ".join(review_json.get("issues", []))
+        now = int(time.time())
+
+        knowledge_table.update_item(
+            Key={"scheme_id": scheme_id, "section_id": section_id},
+            UpdateExpression="SET ai_review_status = :s, ai_review_notes = :n, updated_at = :ua",
+            ExpressionAttributeValues={":s": status, ":n": notes, ":ua": now},
+        )
+
+        return cors_json_response(200, {
+            "id": entry_id,
+            "ai_review_status": status,
+            "ai_review_notes": notes,
+            "confidence": review_json.get("confidence", 0.5),
+            "issues": review_json.get("issues", []),
+        })
+    except Exception as e:
+        logger.error(f"Admin AI review error: {e}")
+        return cors_json_response(500, {"error": "AI review failed"})
 
 
 # ══════════════════════════════════════════════════════════════
@@ -888,8 +1433,13 @@ def handle_language_select(params):
     return twiml_response(response)
 
 
-# ── Step 3: User spoke — process query ──────────────────────
+# ── Step 3: User spoke — kick off async processing ──────────
 def handle_gather(params):
+    """
+    Immediately responds with a "please wait" message and redirects to
+    /voice/poll, while processing RAG + TTS in a background thread.
+    This eliminates the silent wait the user previously experienced.
+    """
     call_sid    = params.get("CallSid", "")
     speech_text = params.get("SpeechResult", "")
     language    = params.get("lang", "hi")
@@ -899,12 +1449,97 @@ def handle_gather(params):
     if not speech_text:
         return ask_again(language)
 
-    error_msgs = {
-        "hi": "मुझे अभी कुछ तकलीफ हो रही है। थोड़ी देर बाद कोशिश करें।",
-        "mr": "मला आत्ता काही अडचण आहे. थोड्या वेळाने प्रयत्न करा.",
-        "ta": "எனக்கு தற்போது சிரமம் ஆகிறது. கொஞ்சம் நேரம் கழித்து முயற்சிக்கவும்.",
-        "en": "I'm having trouble right now. Please try again in a moment.",
+    job_key = f"job#{call_sid}"
+
+    # ── Write "processing" sentinel so poll knows a job is active ──
+    try:
+        calls_table.put_item(Item={
+            "call_id": job_key,
+            "timestamp": 0,
+            "status": "processing",
+            "lang": language,
+            "ttl": int(time.time()) + 300,  # auto-expire in 5 min
+        })
+    except Exception as e:
+        logger.warning(f"Job sentinel write failed (non-fatal): {e}")
+
+    # ── Background thread: RAG + TTS → store result in DynamoDB ───
+    def _process_async():
+        try:
+            profile_context = ""
+            try:
+                ts = get_call_timestamp(call_sid)
+                call_item = calls_table.get_item(Key={"call_id": call_sid, "timestamp": ts}).get("Item", {})
+                user_id = call_item.get("user_id", "")
+                if user_id:
+                    user_result = users_table.get_item(Key={"user_id": user_id})
+                    caller = user_result.get("Item")
+                    if caller:
+                        profile_context = _build_profile_context(caller)
+            except Exception as pe:
+                logger.warning(f"Profile lookup for call {call_sid}: {pe}")
+
+            answer    = rag_pipeline(speech_text, language, call_sid, profile_context=profile_context)
+            audio_url = sarvam_tts(answer, language) or ""
+
+            calls_table.put_item(Item={
+                "call_id": job_key,
+                "timestamp": 0,
+                "status": "done",
+                "answer": answer,
+                "audio_url": audio_url,
+                "lang": language,
+                "ttl": int(time.time()) + 300,
+            })
+            log_query(call_sid, speech_text, answer, language)
+            logger.info(f"Async job done for call={call_sid}")
+        except Exception as e:
+            logger.error(f"Async RAG error for call={call_sid}: {e}")
+            try:
+                calls_table.put_item(Item={
+                    "call_id": job_key,
+                    "timestamp": 0,
+                    "status": "error",
+                    "lang": language,
+                    "ttl": int(time.time()) + 300,
+                })
+            except Exception:
+                pass
+
+    threading.Thread(target=_process_async, daemon=True).start()
+
+    # ── Respond instantly with a "thinking" voice line ─────────────
+    thinking_msgs = {
+        "hi": "एक पल रुकिए, मैं आपके लिए जानकारी ढूंढ रहा हूँ।",
+        "mr": "एक क्षण थांबा, मी तुमच्यासाठी माहिती शोधत आहे।",
+        "ta": "ஒரு நிமிடம் காத்திருங்கள், உங்களுக்காக தகவல் தேடுகிறேன்.",
+        "en": "Please wait a moment while I find that information for you.",
     }
+    cfg      = LANG_CONFIG.get(language, LANG_CONFIG["en"])
+    poll_url = f"{BASE_URL}/voice/poll?lang={language}" if BASE_URL else f"/voice/poll?lang={language}"
+
+    response = VoiceResponse()
+    # Use Polly <Say> — zero generation time, user hears voice immediately
+    response.say(thinking_msgs.get(language, thinking_msgs["en"]), voice=cfg["polly_voice"])
+    response.redirect(poll_url, method="POST")
+    return twiml_response(response)
+
+
+# ── Step 3b: Poll for async result ──────────────────────────
+def handle_poll(params):
+    """
+    Called by Twilio after the "thinking" message plays.
+    Polls DynamoDB until the background RAG job completes, then returns
+    the TTS audio.  Allows up to two poll hops (~20 s total) before
+    giving up gracefully.
+    """
+    call_sid = params.get("CallSid", "")
+    language = params.get("lang", "hi")
+    attempt  = int(params.get("attempt", "0"))
+
+    job_key = f"job#{call_sid}"
+    cfg     = LANG_CONFIG.get(language, LANG_CONFIG["en"])
+
     follow_ups = {
         "hi": "और बताइए, कुछ और जानना है?",
         "mr": "आणखी काही विचारायचं आहे का?",
@@ -917,54 +1552,91 @@ def handle_gather(params):
         "ta": "சரி, கவனமா இருங்க! வாணீசேவாவை அழைத்ததற்கு நன்றி.",
         "en": "Alright, take care! Thanks for calling VaaniSeva.",
     }
+    error_msgs = {
+        "hi": "माफ करें, अभी कुछ समस्या आ रही है। कृपया फिर से बोलें।",
+        "mr": "क्षमस्व, आत्ता काही अडचण आहे. कृपया पुन्हा सांगा.",
+        "ta": "மன்னிக்கவும், சிக்கல் ஏற்பட்டது. மீண்டும் பேசுங்கள்.",
+        "en": "I'm sorry, I had trouble with that. Please ask your question again.",
+    }
 
-    try:
-        # Inject profile context if caller is a registered user
-        profile_context = ""
+    gather_url = f"{BASE_URL}/voice/gather?lang={language}" if BASE_URL else f"/voice/gather?lang={language}"
+    response   = VoiceResponse()
+
+    # Poll DynamoDB every ~1.5 s for up to 10 s
+    result   = None
+    deadline = time.time() + 10.0
+    while time.time() < deadline:
         try:
-            ts = get_call_timestamp(call_sid)
-            call_item = calls_table.get_item(Key={"call_id": call_sid, "timestamp": ts}).get("Item", {})
-            user_id = call_item.get("user_id", "")
-            if user_id:
-                user_result = users_table.get_item(Key={"user_id": user_id})
-                caller = user_result.get("Item")
-                if caller:
-                    profile_context = _build_profile_context(caller)
-        except Exception as pe:
-            logger.warning(f"Profile lookup for call {call_sid}: {pe}")
+            item = calls_table.get_item(Key={"call_id": job_key, "timestamp": 0}).get("Item")
+            if item and item.get("status") in ("done", "error"):
+                result = item
+                break
+        except Exception as e:
+            logger.warning(f"Poll DynamoDB error: {e}")
+        time.sleep(1.5)
 
-        answer = rag_pipeline(speech_text, language, call_sid, profile_context=profile_context)
-    except Exception as e:
-        logger.error(f"RAG error: {e}")
-        answer = error_msgs.get(language, error_msgs["en"])
+    # ── Still processing after 10 s? ───────────────────────────────
+    if result is None:
+        if attempt < 1:
+            # One more hop — play brief hold message, try again
+            still_msgs = {
+                "hi": "बस थोड़ी देर और, लगभग हो गया।",
+                "mr": "आणखी थोडा वेळ, जवळजवळ झाले.",
+                "ta": "இன்னும் கொஞ்சம் நேரம், கிட்டத்தட்ட முடிந்தது.",
+                "en": "Almost there, just a few more seconds.",
+            }
+            response.say(still_msgs.get(language, still_msgs["en"]), voice=cfg["polly_voice"])
+            next_poll = (
+                f"{BASE_URL}/voice/poll?lang={language}&attempt=1"
+                if BASE_URL else f"/voice/poll?lang={language}&attempt=1"
+            )
+            response.redirect(next_poll, method="POST")
+        else:
+            # Give up after ~20 s total — let user ask again
+            gather = Gather(
+                input="speech", action=gather_url, method="POST",
+                language=cfg["twilio_speech_lang"], speech_timeout="auto", timeout=15,
+            )
+            gather.say(error_msgs.get(language, error_msgs["en"]), voice=cfg["polly_voice"])
+            response.append(gather)
+            response.say(goodbyes.get(language, goodbyes["en"]), voice=cfg["polly_voice"])
+        return twiml_response(response)
 
-    follow_up = follow_ups.get(language, follow_ups["en"])
-    goodbye   = goodbyes.get(language, goodbyes["en"])
-    cfg       = LANG_CONFIG.get(language, LANG_CONFIG["en"])
-
-    # Single combined TTS call (answer + follow_up) to cut 1 Sarvam round-trip
-    combined_msg = f"{answer} {follow_up}"
-
-    response = VoiceResponse()
-    gather = Gather(
-        input="speech",
-        action=f"{BASE_URL}/voice/gather?lang={language}" if BASE_URL else f"/voice/gather?lang={language}",
-        method="POST",
-        language=cfg["twilio_speech_lang"],
-        speech_timeout="auto",
-        timeout=15
-    )
-    tts_say(gather, combined_msg, language)
-    response.append(gather)
-    tts_say(response, goodbye, language)
-
-    # Log on background thread — don't block the response
+    # Clean up job record (fire-and-forget)
     threading.Thread(
-        target=log_query,
-        args=(call_sid, speech_text, answer, language),
-        daemon=True
+        target=lambda: calls_table.delete_item(Key={"call_id": job_key, "timestamp": 0}),
+        daemon=True,
     ).start()
 
+    # ── Error result ────────────────────────────────────────────────
+    if result.get("status") == "error":
+        gather = Gather(
+            input="speech", action=gather_url, method="POST",
+            language=cfg["twilio_speech_lang"], speech_timeout="auto", timeout=15,
+        )
+        gather.say(error_msgs.get(language, error_msgs["en"]), voice=cfg["polly_voice"])
+        response.append(gather)
+        response.say(goodbyes.get(language, goodbyes["en"]), voice=cfg["polly_voice"])
+        return twiml_response(response)
+
+    # ── Success — play answer + prompt for next question ───────────
+    answer    = result.get("answer", "")
+    audio_url = result.get("audio_url", "")
+    follow_up = follow_ups.get(language, follow_ups["en"])
+    goodbye   = goodbyes.get(language, goodbyes["en"])
+
+    gather = Gather(
+        input="speech", action=gather_url, method="POST",
+        language=cfg["twilio_speech_lang"], speech_timeout="auto", timeout=15,
+    )
+    if audio_url:
+        gather.play(audio_url)
+        gather.say(follow_up, voice=cfg["polly_voice"])
+    else:
+        # Sarvam TTS unavailable — fall back to Polly for full answer
+        gather.say(f"{answer} {follow_up}", voice=cfg["polly_voice"])
+    response.append(gather)
+    response.say(goodbye, voice=cfg["polly_voice"])
     return twiml_response(response)
 
 
