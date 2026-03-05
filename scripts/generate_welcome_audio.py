@@ -20,11 +20,11 @@ s3 = boto3.client("s3", region_name=AWS_REGION)
 CLIPS = {
     "welcome_intro": (
         "नमस्कार! वाणीसेवा में आपका स्वागत है। "
-        "मैं आपकी हर सवाल में मदद करने के लिए यहाँ हूं।",
+        "मैं आपकी दीदी हूँ — सरकारी योजनाएँ हों, खेती का सवाल हो, या कुछ भी जानना हो, बस बोलिए!",
         "hi-IN", "anushka", "static-audio/welcome_intro.wav"
     ),
     "welcome_hi": (
-        "हिंदी के लिए एक दबाएं।",
+        "हिंदी के लिए एक दबाइए।",
         "hi-IN", "anushka", "static-audio/welcome_hi.wav"
     ),
     "welcome_mr": (
@@ -40,7 +40,7 @@ CLIPS = {
         "en-IN", "arya", "static-audio/welcome_en.wav"
     ),
     "no_input": (
-        "कुछ सुनाई नहीं दिया। कृपया दोबारा कॉल करें। धन्यवाद।",
+        "अरे, कुछ सुनाई नहीं दिया। कोई बात नहीं, दोबारा कॉल कर लीजिए! मैं यहीं हूँ।",
         "hi-IN", "anushka", "static-audio/no_input.wav"
     ),
 }

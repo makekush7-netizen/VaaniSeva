@@ -2,9 +2,9 @@
 # Languages : Hindi (hi) | Marathi (mr) | Tamil (ta) | English (en)
 # TTS       : Sarvam AI (primary, all 4 langs) → Amazon Polly fallback
 # STT       : Twilio native Gather speech recognition
-# LLM       : OpenAI GPT-4o-mini (primary) → Bedrock fallback
+# LLM       : AWS Bedrock (primary) → OpenAI fallback
 # Memory    : Full conversation history per call from DynamoDB
-# Latency   : DynamoDB log on background thread · Single combined TTS · 250 token cap
+# Latency   : DynamoDB log on background thread · Single combined TTS · 300 token cap
 
 import json
 import os
@@ -75,7 +75,7 @@ LANG_CONFIG = {
     },
     "mr": {
         "sarvam_code": "mr-IN",
-        "sarvam_speaker": "anushka",
+        "sarvam_speaker": "manisha",
         "polly_voice": "Polly.Aditi",
         "twilio_speech_lang": "mr-IN",
         "digit": "2",
@@ -99,36 +99,44 @@ LANG_CONFIG = {
 DIGIT_TO_LANG = {v["digit"]: k for k, v in LANG_CONFIG.items()}
 
 # ── System prompt — warm, human, conversational ─────────────
-SYSTEM_PROMPT = """You are VaaniSeva (वाणीसेवा) — think of yourself as a warm, knowledgeable friend who happens to know everything. You're talking to someone on the phone. Be natural. Be human. Have personality.
+SYSTEM_PROMPT = """तुम वाणीसेवा (VaaniSeva) हो — एक गर्मजोशी से भरी, समझदार दीदी जो हर सवाल का जवाब जानती है। तुम फोन पर भी बात करती हो और वेब चैट पर भी। तुम्हारी आवाज़ एक औरत की है — हमेशा "मैं बताती हूँ", "मैं ढूँढती हूँ", "मुझे पता है" बोलो। कभी भी "बताता हूँ" या पुरुष भाषा मत बोलो।
 
-Who you are:
-- A genuinely helpful AI assistant available to EVERYONE via a simple phone call
-- You speak like a caring, smart friend — not a robot or government helpline
-- You have real warmth — use phrases like "बिल्कुल!" "अच्छा सवाल है!" "चिंता मत करो" naturally
-- You remember everything said earlier in this call and build on it
+तुम कौन हो:
+- VaaniSeva (वाणीसेवा) — "AI for Bharat Hackathon 2026" के लिए बनाई गई एक voice-first AI assistant
+- तुम गाँव और शहर दोनों के लोगों की मदद करती हो — सरकारी योजनाएँ, खेती, स्वास्थ्य, पैसा, पढ़ाई, कानूनी हक़, रोज़मर्रा की दिक्कतें, और कोई भी सवाल
+- तुम एक simple phone call या website पर उपलब्ध हो — कोई app download करने की ज़रूरत नहीं
+- तुम 4 भाषाओं में बात करती हो: हिंदी, मराठी, तमिल, और English
+- तुम्हारा लहज़ा एक caring बड़ी बहन/दीदी का है — ना रोबोट, ना सरकारी हेल्पलाइन
 
-What you can help with (and you're GREAT at all of these):
-1. **Government schemes** — PM-Kisan, Ayushman Bharat, MGNREGA, Ujjwala, Mudra loans, Atal Pension, Fasal Bima, SVANidhi, scholarships, housing, and 30+ more. You know eligibility, documents needed, how to apply, helpline numbers.
-2. **Farming & agriculture** — crop selection for their soil/season, organic methods, pest control, when to sow/harvest, mandi prices, weather impact, irrigation tips, government subsidies on seeds/fertilizers
-3. **Health & wellness** — common illnesses, first aid, when to see a doctor, nearest PHC/CHC info, ASHA worker roles, maternal health, child nutrition, vaccination schedules, mental health awareness
-4. **Money & finance** — how to open a bank account, save money, get loans, insurance explained simply, SHG/microfinance, digital payments (UPI), avoiding fraud
-5. **Education** — school enrollment, scholarships (national + state), mid-day meals, vocational training, skill development programs, distance learning
-6. **Legal rights & documents** — Aadhaar, ration card, voter ID, caste certificate, land records, RTI filing, labour rights, women's rights, domestic violence helplines
-7. **Daily life problems** — electricity complaints, water issues, road repair, PDS shop problems, pension delays — guide them on WHO to contact and HOW
-8. **General knowledge & curiosity** — answer ANY question they're curious about. If a farmer asks "why is the sky blue?" — answer it! Treat every question with respect.
-9. **Emotional support** — if someone sounds stressed, lonely, or upset, be compassionate. Listen. Suggest helplines if needed (iCall: 9152987821, Vandrevala: 1860-2662-345).
+तुम किस-किस चीज़ में मदद कर सकती हो:
+1. सरकारी योजनाएँ — PM-Kisan, Ayushman Bharat, MGNREGA, उज्ज्वला, मुद्रा लोन, अटल पेंशन, फसल बीमा, SVANidhi, छात्रवृत्ति, आवास, और 30+ योजनाएँ। पात्रता, ज़रूरी दस्तावेज़, आवेदन कैसे करें, हेल्पलाइन नंबर — सब बताती हूँ।
+2. खेती — फसल चुनाव, जैविक तरीके, कीट नियंत्रण, बुवाई/कटाई, मंडी भाव, मौसम, सिंचाई, बीज-खाद सब्सिडी
+3. स्वास्थ्य — आम बीमारियाँ, प्राथमिक उपचार, PHC/CHC जानकारी, टीकाकरण, माँ-बच्चे की सेहत, मानसिक स्वास्थ्य
+4. पैसा और बैंकिंग — खाता खोलना, बचत, लोन, बीमा, SHG, UPI, फ्रॉड से बचाव
+5. शिक्षा — स्कूल दाखिला, छात्रवृत्ति, मिड-डे मील, स्किल ट्रेनिंग, दूरस्थ शिक्षा
+6. कानूनी हक़ — आधार, राशन कार्ड, वोटर ID, जाति प्रमाणपत्र, भूमि रिकॉर्ड, RTI, श्रमिक अधिकार, महिला अधिकार
+7. रोज़मर्रा — बिजली शिकायत, पानी, सड़क, PDS दुकान, पेंशन — किससे और कैसे बात करें
+8. कोई भी सवाल — "आसमान नीला क्यों है?" हो या "चाँद पर कौन गया" — बताती हूँ! हर सवाल का सम्मान करो।
+9. भावनात्मक सहारा — अगर कोई परेशान लगे, तो प्यार से सुनो। ज़रूरत हो तो helpline: iCall 9152987821, Vandrevala 1860-2662-345
 
-How you talk:
-- This is a PHONE CALL — keep responses to 3-4 short sentences. Conversational, not essay-style.
-- Sound like a real person, not a textbook. Use everyday language.
-- Match their energy — if they're excited, be enthusiastic. If worried, be reassuring.
-- Use the SAME language they speak. Hindi → pure Devanagari. Marathi → Marathi. Tamil → Tamil. English → simple English. NEVER MIX SCRIPTS.
-- DON'T just dump info — have a conversation. Ask follow-up questions naturally: "आपके परिवार में कितने लोग हैं? उसके हिसाब से बताता हूँ" or "Which state are you from? That'll help me give better info."
-- If you don't know something, say "मुझे इसकी पूरी जानकारी नहीं है, लेकिन आप इस नंबर पर कॉल कर सकते हैं..." — be honest, but always give a next step.
-- NEVER say "I'm just an AI" or "I don't have feelings" — you're VaaniSeva, a helpful friend on the phone.
-- Add small human touches: "अच्छा", "हाँ बिल्कुल", "सही बात है" etc.
+कैसे बात करनी है:
+- जवाब 3-4 छोटे वाक्यों में दो। बातचीत जैसा, लेख जैसा नहीं।
+- असली इंसान जैसी बात करो — "अच्छा!", "हाँ बिल्कुल!", "चिंता मत करो", "सही बात है" जैसे शब्द naturally बोलो।
+- Follow-up सवाल पूछो: "आपके परिवार में कितने लोग हैं? उसके हिसाब से बताती हूँ" या "कौन से राज्य से हो? बेहतर जानकारी दे पाऊँगी।"
+- अगर कोई चीज़ नहीं पता तो ईमानदारी से बोलो: "इसकी पूरी जानकारी मेरे पास नहीं है, लेकिन आप इस नंबर पर बात कर सकते हैं..." — हमेशा अगला कदम बताओ।
+- कभी मत बोलो "I'm just an AI" या "मैं सिर्फ AI हूँ" — तुम वाणीसेवा हो, एक भरोसेमंद दीदी।
 
-Remember: You're not a government bot. You're the smartest, kindest friend these people have ever called. Make them feel heard. Make them feel helped. Make them want to call back."""
+=== STRICT LANGUAGE RULE ===
+This is the MOST IMPORTANT rule. You MUST follow the language specified in the user message.
+- If told "Hindi" or "hi" → reply ONLY in Devanagari Hindi. NO English words, NO Roman script.
+- If told "Marathi" or "mr" → reply ONLY in Marathi script. NO Hindi mixing.
+- If told "Tamil" or "ta" → reply ONLY in Tamil script. NO English, NO Hindi.
+- If told "English" or "en" → reply ONLY in simple English.
+- NEVER mix scripts. NEVER write Hindi in Roman letters. NEVER put English words in a Hindi response.
+- Proper nouns (PM-Kisan, Ayushman Bharat, MGNREGA) can stay in English.
+========================
+
+याद रखो: तुम सरकारी बॉट नहीं हो। तुम इन लोगों की सबसे समझदार, सबसे प्यारी दीदी हो।"""
 
 
 # ══════════════════════════════════════════════════════════════
@@ -807,16 +815,16 @@ def handle_incoming(params):
 def _browser_call_welcome(call_sid: str, language: str):
     """Skip DTMF menu for browser calls — greet in chosen language and open gather."""
     greetings = {
-        "hi": "नमस्ते! मैं वाणीसेवा हूँ। आप क्या जानना चाहते हैं? बोलिए।",
-        "mr": "नमस्कार! मी वाणीसेवा आहे. तुम्हाला काय जाणून घ्यायचे आहे?",
-        "ta": "வணக்கம்! நான் வாணீசேவா. நீங்கள் என்ன அறிய விரும்புகிறீர்கள்?",
-        "en": "Hello! I'm VaaniSeva. What would you like to know? Please speak.",
+        "hi": "नमस्ते! मैं वाणीसेवा हूँ, आपकी अपनी दीदी। बताइए, आज मैं आपकी किस बात में मदद करूँ?",
+        "mr": "नमस्कार! मी वाणीसेवा, तुमची ताई. बोला, आज मी तुम्हाला कशात मदत करू?",
+        "ta": "வணக்கம்! நான் வாணீசேவா, உங்கள் அக்கா. சொல்லுங்க, இன்று நான் எப்படி உதவ வேண்டும்?",
+        "en": "Hello! I'm VaaniSeva, your friendly helper. Tell me, how can I help you today?",
     }
     fallbacks = {
-        "hi": "कुछ सुनाई नहीं दिया। कृपया दोबारा बोलें।",
-        "mr": "काही ऐकू आले नाही. कृपया पुन्हा सांगा.",
-        "ta": "எதுவும் கேட்கவில்லை. மீண்டும் சொல்லுங்கள்.",
-        "en": "I didn't catch that. Please speak again.",
+        "hi": "अरे, आवाज़ नहीं आई। एक बार फिर से बोलिए ना?",
+        "mr": "अरे, ऐकू आलं नाही. पुन्हा एकदा सांगा ना?",
+        "ta": "கேட்கவில்லை. மறுபடியும் சொல்லுங்க?",
+        "en": "Oh, I didn't catch that. Could you say that again?",
     }
 
     cfg        = LANG_CONFIG[language]
@@ -859,16 +867,16 @@ def handle_language_select(params):
 
     # Open-ended question in the selected language
     prompts = {
-        "hi": "आप क्या जानना चाहते हैं? बोलिए।",
-        "mr": "तुम्हाला काय जाणून घ्यायचे आहे? सांगा.",
-        "ta": "நீங்கள் என்ன அறிய விரும்புகிறீர்கள்? சொல்லுங்கள்.",
-        "en": "What would you like to know? Please speak.",
+        "hi": "हाँ जी, बताइए आपका सवाल! मैं सुन रही हूँ।",
+        "mr": "हो, बोला तुमचा प्रश्न! मी ऐकतेय.",
+        "ta": "சொல்லுங்க, நான் கேட்கிறேன்!",
+        "en": "Go ahead, I'm listening! What would you like to know?",
     }
     fallbacks = {
-        "hi": "कुछ सुनाई नहीं दिया। कृपया दोबारा कॉल करें।",
-        "mr": "काही ऐकू आले नाही. कृपया पुन्हा कॉल करा.",
+        "hi": "कुछ सुनाई नहीं दिया। दोबारा कॉल करके बात कीजिए ना।",
+        "mr": "काही ऐकू आलं नाही. पुन्हा कॉल करा ना.",
         "ta": "எதுவும் கேட்கவில்லை. மீண்டும் அழைக்கவும்.",
-        "en": "I didn't hear anything. Please call again.",
+        "en": "I couldn't hear you. Please try calling again.",
     }
 
     cfg        = LANG_CONFIG[language]
@@ -909,16 +917,16 @@ def handle_gather(params):
         "en": "I'm having trouble right now. Please try again in a moment.",
     }
     follow_ups = {
-        "hi": "क्या आप और कुछ जानना चाहते हैं?",
-        "mr": "तुम्हाला आणखी काही जाणून घ्यायचे आहे का?",
-        "ta": "உங்களுக்கு வேறு ஏதாவது தெரிந்து கொள்ள வேண்டுமா?",
-        "en": "Would you like to know anything else?",
+        "hi": "और बताइए, कुछ और जानना है?",
+        "mr": "आणखी काही विचारायचं आहे का?",
+        "ta": "வேறு ஏதாவது கேட்க வேண்டுமா?",
+        "en": "Anything else you'd like to know?",
     }
     goodbyes = {
-        "hi": "धन्यवाद। वाणीसेवा में कॉल करने के लिए शुक्रिया।",
-        "mr": "धन्यवाद. वाणीसेवाला कॉल केल्याबद्दल आभारी आहोत.",
-        "ta": "நன்றி. வாணீசேவாவை அழைத்தமைக்கு நன்றி.",
-        "en": "Thank you for calling VaaniSeva. Goodbye.",
+        "hi": "अच्छा चलिए, ख्याल रखिए! वाणीसेवा को कॉल करने के लिए शुक्रिया।",
+        "mr": "बरं चला, काळजी घ्या! वाणीसेवाला कॉल केल्याबद्दल धन्यवाद.",
+        "ta": "சரி, கவனமா இருங்க! வாணீசேவாவை அழைத்ததற்கு நன்றி.",
+        "en": "Alright, take care! Thanks for calling VaaniSeva.",
     }
 
     try:
@@ -1136,34 +1144,32 @@ def retrieve_context(query_embedding: list, language: str) -> str:
 
 def ask_llm(query: str, context: str, language: str, history: list = None, profile_context: str = "") -> str:
     lang_instructions = {
-        "hi": "जवाब पूरी तरह हिंदी देवनागरी लिपि में दो। कोई भी अंग्रेजी या रोमन अक्षर मत लिखो।",
-        "mr": "उत्तर संपूर्णपणे मराठी लिपीत द्या. कोणतेही इंग्रजी किंवा रोमन अक्षर वापरू नका.",
-        "ta": "பதிலை முழுவதுமாக தமிழ் எழுத்தில் கொடுங்கள். எந்த ஆங்கிலமும் ரோமன் எழுத்தும் வேண்டாம்.",
-        "en": "Respond in simple, clear English.",
+        "hi": "LANGUAGE: Hindi ONLY. हिंदी देवनागरी लिपि में जवाब दो। कोई अंग्रेजी/रोमन अक्षर नहीं। सिर्फ proper nouns (PM-Kisan, Ayushman Bharat) अंग्रेजी में रख सकती हो।",
+        "mr": "LANGUAGE: Marathi ONLY. उत्तर फक्त मराठी लिपीत द्या. हिंदी मिसळू नका. फक्त proper nouns (PM-Kisan, Ayushman Bharat) इंग्रजीत ठेवा.",
+        "ta": "LANGUAGE: Tamil ONLY. பதிலை முழுவதுமாக தமிழில் கொடுங்கள். ஆங்கிலம் வேண்டாம். proper nouns (PM-Kisan, Ayushman Bharat) மட்டும் ஆங்கிலத்தில்.",
+        "en": "LANGUAGE: English ONLY. Respond in simple, clear English. No Hindi or other scripts.",
     }
     lang_instruction = lang_instructions.get(language, lang_instructions["en"])
 
     # Build user message with optional profile context
     profile_section = f"\n\n{profile_context}\n" if profile_context else ""
 
-    user_msg = f"""{lang_instruction}
+    user_msg = f"""[{lang_instruction}]
 {profile_section}
 Relevant context from our knowledge base (use if helpful, ignore if not relevant):
 {context}
 
-User just said: {query}
+User: {query}"""
 
-Respond naturally in 3-4 short sentences. This is a phone call — be conversational, not robotic."""
-
-    # Try OpenAI first (much better conversational ability)
+    # Try OpenAI first if configured
     if LLM_PROVIDER == "openai" and openai_client:
         try:
             return _ask_openai(user_msg, history or [])
         except Exception as e:
             logger.warning(f"OpenAI failed, falling back to Bedrock: {e}")
 
-    # Bedrock fallback
-    return _ask_bedrock(user_msg)
+    # Bedrock (primary)
+    return _ask_bedrock(user_msg, history or [])
 
 
 def _ask_openai(user_msg: str, history: list) -> str:
@@ -1187,34 +1193,39 @@ def _ask_openai(user_msg: str, history: list) -> str:
     return response.choices[0].message.content.strip()
 
 
-def _ask_bedrock(user_msg: str) -> str:
-    """Fallback: call Bedrock Nova Micro (no conversation memory — stateless)."""
-    messages = [
-        {"role": "user", "content": [{"text": f"{SYSTEM_PROMPT}\n\n{user_msg}"}]}
-    ]
-    response = bedrock.invoke_model(
+def _ask_bedrock(user_msg: str, history: list = None) -> str:
+    """Call Bedrock via Converse API with system prompt and conversation history."""
+    messages = []
+
+    # Add conversation history (last 10 turns)
+    for turn in (history or [])[-10:]:
+        if turn.get("query"):
+            messages.append({"role": "user", "content": [{"text": turn["query"]}]})
+        if turn.get("answer"):
+            messages.append({"role": "assistant", "content": [{"text": turn["answer"]}]})
+
+    # Current user message
+    messages.append({"role": "user", "content": [{"text": user_msg}]})
+
+    response = bedrock.converse(
         modelId=BEDROCK_MODEL_ID,
-        body=json.dumps({
-            "messages": messages,
-            "inferenceConfig": {
-                "maxTokens": 250,
-                "temperature": 0.5
-            }
-        }),
-        contentType="application/json",
-        accept="application/json"
+        system=[{"text": SYSTEM_PROMPT}],
+        messages=messages,
+        inferenceConfig={
+            "maxTokens": 300,
+            "temperature": 0.7,
+        }
     )
-    result = json.loads(response["body"].read())
-    return result["output"]["message"]["content"][0]["text"].strip()
+    return response["output"]["message"]["content"][0]["text"].strip()
 
 
 # ── Helpers ──────────────────────────────────────────────────
 def ask_again(language: str):
     msgs = {
-        "hi": "कृपया दोबारा बोलिए।",
-        "mr": "कृपया पुन्हा सांगा.",
-        "ta": "மீண்டும் சொல்லுங்கள்.",
-        "en": "Sorry, please say that again.",
+        "hi": "अरे, सुनाई नहीं दिया। एक बार फिर से बोलिए?",
+        "mr": "ऐकू आलं नाही. पुन्हा सांगा ना?",
+        "ta": "கேட்கவில்லை. மறுபடியும் சொல்லுங்க?",
+        "en": "Sorry, I didn't catch that. Could you say it again?",
     }
     cfg = LANG_CONFIG.get(language, LANG_CONFIG["en"])
     response = VoiceResponse()

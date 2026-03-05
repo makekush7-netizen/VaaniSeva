@@ -514,7 +514,7 @@ function VoiceChat() {
                 </div>
                 <p className="text-green-400 text-3xl font-bold tabular-nums">{fmt(duration)}</p>
                 <p className={`text-gray-300 text-sm mt-1 ${language !== 'en' ? 'font-hindi' : ''}`}>
-                  {language === 'hi' ? 'बोलिए — सुन रहा हूँ' :
+                  {language === 'hi' ? 'बोलिए — सुन रही हूँ' :
                    language === 'mr' ? 'बोला — ऐकत आहे' :
                    language === 'ta' ? 'பேசுங்கள் — கேட்கிறேன்' :
                    "Speak — I'm listening"}
