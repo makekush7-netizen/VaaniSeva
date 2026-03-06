@@ -2056,6 +2056,7 @@ def handle_poll(params):
     attempt  = int(params.get("attempt", "0"))
     voice    = params.get("voice", "") or _get_call_voice(call_sid)
     current_agent = params.get("agent", DEFAULT_AGENT)
+    partial_played = params.get("pp", "0") == "1"  # was partial ack already played?
 
     job_key = f"job#{call_sid}"
     cfg     = LANG_CONFIG.get(language, LANG_CONFIG["en"])
@@ -2083,12 +2084,14 @@ def handle_poll(params):
     response   = VoiceResponse()
 
     # Poll DynamoDB every ~1.5 s for up to 10 s
+    # If partial was already played, only wait for done/error
+    acceptable = ("done", "error") if partial_played else ("done", "error", "partial")
     result   = None
     deadline = time.time() + 10.0
     while time.time() < deadline:
         try:
             item = calls_table.get_item(Key={"call_id": job_key, "timestamp": 0}).get("Item")
-            if item and item.get("status") in ("done", "error", "partial"):
+            if item and item.get("status") in acceptable:
                 result = item
                 break
         except Exception as e:
@@ -2105,10 +2108,11 @@ def handle_poll(params):
                 "ta": "இன்னும் கொஞ்சம் நேரம், கிட்டத்தட்ட முடிந்தது.",
                 "en": "Almost there, just a few more seconds.",
             }
+            pp_flag = "1" if partial_played else "0"
             response.pause(length=1)
             next_poll = (
-                f"{BASE_URL}/voice/poll?lang={language}&attempt=1&voice={voice}&agent={current_agent}"
-                if BASE_URL else f"/voice/poll?lang={language}&attempt=1&voice={voice}&agent={current_agent}"
+                f"{BASE_URL}/voice/poll?lang={language}&attempt=1&voice={voice}&agent={current_agent}&pp={pp_flag}"
+                if BASE_URL else f"/voice/poll?lang={language}&attempt=1&voice={voice}&agent={current_agent}&pp={pp_flag}"
             )
             response.redirect(next_poll, method="POST")
         else:
@@ -2138,7 +2142,7 @@ def handle_poll(params):
         response.say(goodbyes.get(language, goodbyes["en"]), voice=cfg["polly_voice"])
         return twiml_response(response)
 
-    # ── Partial result (Phase 1 ack — play it, then keep polling for data) ──
+    # ── Partial result (Phase 1 ack — play ONCE, then poll for done) ──
     if result.get("status") == "partial":
         ack_audio = result.get("audio_url", "")
         if ack_audio:
@@ -2147,10 +2151,10 @@ def handle_poll(params):
             ack_text = result.get("answer", "")
             if ack_text:
                 response.say(ack_text, voice=cfg["polly_voice"])
-        # Redirect to poll again for the full "done" result
+        # Redirect to poll again but with pp=1 so we only wait for done/error
         next_poll = (
-            f"{BASE_URL}/voice/poll?lang={language}&attempt=0&voice={voice}&agent={current_agent}"
-            if BASE_URL else f"/voice/poll?lang={language}&attempt=0&voice={voice}&agent={current_agent}"
+            f"{BASE_URL}/voice/poll?lang={language}&attempt=0&voice={voice}&agent={current_agent}&pp=1"
+            if BASE_URL else f"/voice/poll?lang={language}&attempt=0&voice={voice}&agent={current_agent}&pp=1"
         )
         response.redirect(next_poll, method="POST")
         return twiml_response(response)
