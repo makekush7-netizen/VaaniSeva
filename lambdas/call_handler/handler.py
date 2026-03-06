@@ -200,7 +200,7 @@ You have access to a knowledge base with detailed government scheme information 
 - If the question needs SPECIFIC scheme details, exact eligibility rules, live mandi prices, or verified government data that you are not 100% sure about, add the tag [FETCH_DATA] at the very end of your response. Your response before [FETCH_DATA] should be a natural, brief acknowledgment like you would say before looking something up. Do NOT say generic filler like 'ek pal rukiye'. Be specific about what you are checking.
 - NEVER add [FETCH_DATA] for greetings, your name, casual conversation, general knowledge, jokes, math, or anything you already know.
 - ALWAYS add [FETCH_DATA] when the user asks for mandi prices, commodity rates, or any live market data — you cannot know current prices without checking.
-- NEVER say 'as I told you before' or 'as I mentioned' or claim you said something earlier unless the conversation history explicitly shows you gave that exact information. Do not fabricate or assume previous answers."""
+- NEVER say 'as I told you before' or 'as I mentioned' or claim you said something earlier unless the conversation history explicitly shows you gave that exact information."""
 
     if user_name:
         base += f"\nThe caller's name is {user_name}. Address them by name occasionally but naturally."
@@ -2021,7 +2021,7 @@ def handle_gather(params):
                 if live_data:
                     context = f"{context}\n\n--- Live Government Data (data.gov.in) ---\n{live_data}"
 
-                # Phase 2 system prompt: remove [FETCH_DATA] logic, tell LLM to answer with the data
+                # Phase 2 system prompt: strip [FETCH_DATA] logic so LLM answers with data
                 phase2_prompt = call_system_prompt.split("DATA ACCESS:")[0].strip()
                 if context.strip():
                     phase2_prompt += "\n\nIMPORTANT: The data below has already been fetched for you. Use it to answer the user's question directly and specifically. Give actual numbers, names, and details from the data. Do NOT say you are checking or looking up anything — you already have the information."
@@ -2213,6 +2213,9 @@ def handle_poll(params):
     ).start()
 
     answer    = result.get("answer", "")
+    # Truncate long responses — phone calls need brevity
+    if len(answer) > 500:
+        answer = answer[:500].rsplit(' ', 1)[0] + "..."
     # Use the voice stored in the job record (ensures consistency even on retry hops)
     stored_voice = result.get("voice", voice)
     audio_url = result.get("audio_url", "")
@@ -2355,7 +2358,7 @@ def _fetch_data_gov(query: str) -> str:
                     resp = requests.get(
                         "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070",
                         params=mandi_params,
-                        timeout=6,
+                        timeout=5,
                     )
                     if resp.status_code == 200:
                         break
@@ -2384,7 +2387,7 @@ def _fetch_data_gov(query: str) -> str:
             elif resp:
                 logger.warning(f"Mandi API returned status {resp.status_code}")
             else:
-                logger.warning("Mandi API: both retry attempts timed out")
+                logger.warning("Mandi API: all retry attempts failed")
         except Exception as e:
             logger.warning(f"Mandi price fetch failed: {e}")
 
@@ -2576,8 +2579,8 @@ def _ask_bedrock(user_msg: str, history: list = None, system_prompt: str = "") -
         system=[{"text": system_prompt or build_system_prompt(DEFAULT_AGENT, "hi")}],
         messages=messages,
         inferenceConfig={
-            "maxTokens": 512,
-            "temperature": 0.5,
+            "maxTokens": 300,
+            "temperature": 0.7,
         }
     )
     return response["output"]["message"]["content"][0]["text"].strip()
