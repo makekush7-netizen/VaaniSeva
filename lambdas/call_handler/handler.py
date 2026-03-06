@@ -192,7 +192,13 @@ RULES:
 - If someone is distressed, acknowledge first, then mention iCall helpline: 9152987821.
 - You can help with ANYTHING — schemes, health, farming, general questions, maths, stories, jokes, life advice. You are not limited to just government schemes.
 
-HELPLINES (use exact numbers): iCall: 9152987821, Women: 181, Child: 1098, PM-Kisan: 155261, Ayushman Bharat: 14555"""
+HELPLINES (use exact numbers): iCall: 9152987821, Women: 181, Child: 1098, PM-Kisan: 155261, Ayushman Bharat: 14555
+
+DATA ACCESS:
+You have access to a knowledge base with detailed government scheme information and a live mandi price API.
+- If you can answer confidently from your own knowledge (greetings, general chat, basic info, math, stories), just answer directly.
+- If the question needs SPECIFIC scheme details, exact eligibility rules, live mandi prices, or verified government data that you are not 100% sure about, add the tag [FETCH_DATA] at the very end of your response. Your response before [FETCH_DATA] should be a natural, brief acknowledgment like you would say before looking something up. Do NOT say generic filler like 'ek pal rukiye'. Be specific about what you are checking.
+- NEVER add [FETCH_DATA] for greetings, your name, casual conversation, general knowledge, jokes, math, or anything you already know."""
 
     if user_name:
         base += f"\nThe caller's name is {user_name}. Address them by name occasionally but naturally."
@@ -1858,16 +1864,13 @@ def handle_gather(params):
     except Exception as e:
         logger.warning(f"Job sentinel write failed (non-fatal): {e}")
 
-    # ── Background thread: RAG + TTS → store result in DynamoDB ───
+    # ── Background thread: two-phase LLM → store result in DynamoDB ──
     def _process_async():
         try:
             profile_context = ""
             cross_call_context = ""
             from_number = ""
             phone_hash = ""
-
-            # ── Phase 1: Parallel fetch — profile, RAG, live data, history ──
-            use_rag = should_use_rag(speech_text)
 
             def _fetch_profile():
                 """Fetch caller profile and cross-call context."""
@@ -1894,77 +1897,120 @@ def handle_gather(params):
                     logger.warning(f"Profile lookup for call {call_sid}: {pe}")
                 return _prof, _cross, _from, _phash
 
-            def _fetch_rag_context():
-                """Run embedding + vector search (only if RAG is needed)."""
-                if not use_rag:
-                    return ""
-                embedding = get_embedding(speech_text)
-                return retrieve_context(embedding, language)
-
-            def _fetch_live_data():
-                """Fetch live mandi/scheme data from data.gov.in."""
-                if not DATA_GOV_API_KEY:
-                    return ""
-                return _fetch_data_gov(speech_text)
-
             def _fetch_history():
                 """Fetch conversation history for this call."""
                 return get_conversation_history(call_sid) if call_sid else []
 
-            with ThreadPoolExecutor(max_workers=4) as executor:
+            # ── Phase 1: Fast LLM (profile + history only, NO RAG/data.gov) ──
+            with ThreadPoolExecutor(max_workers=2) as executor:
                 fut_profile = executor.submit(_fetch_profile)
-                fut_rag     = executor.submit(_fetch_rag_context)
-                fut_live    = executor.submit(_fetch_live_data)
                 fut_hist    = executor.submit(_fetch_history)
-
                 profile_context, cross_call_context, from_number, phone_hash = fut_profile.result()
-                rag_context = fut_rag.result()
-                live_data   = fut_live.result()
-                history     = fut_hist.result()
-
-            # ── Phase 2: Combine context → LLM ──
-            context = rag_context
-            if live_data:
-                context = f"{context}\n\n--- Live Government Data (data.gov.in) ---\n{live_data}"
+                history = fut_hist.result()
 
             call_system_prompt = build_system_prompt(
                 current_agent, language,
                 user_name=None,
                 cross_call_context=cross_call_context
             )
-            answer = ask_llm(speech_text, context, language, history,
-                             profile_context=profile_context,
-                             system_prompt=call_system_prompt)
 
-            # ── Phase 3: Sentence-split TTS ──
-            # Split answer into first sentence + remainder.
-            # TTS & store first sentence immediately so poll picks it up fast,
-            # then TTS the rest as follow-up audio.
-            import re as _re
-            sentence_split = _re.split(r'(?<=[।\.!\?])', answer, maxsplit=1)
-            first_sentence = sentence_split[0].strip()
-            remainder = sentence_split[1].strip() if len(sentence_split) > 1 else ""
+            quick_answer = ask_llm(speech_text, "", language, history,
+                                   profile_context=profile_context,
+                                   system_prompt=call_system_prompt)
 
-            # TTS first sentence immediately
-            first_audio = sarvam_tts(first_sentence, language, speaker=voice) or ""
+            needs_data = "[FETCH_DATA]" in quick_answer
+            clean_answer = quick_answer.replace("[FETCH_DATA]", "").strip()
 
-            # TTS remainder in parallel (if any)
-            rest_audio = ""
-            if remainder:
-                rest_audio = sarvam_tts(remainder, language, speaker=voice) or ""
+            if not needs_data:
+                # ── Simple query — TTS and done (fast path ~5-6s) ──
+                import re as _re
+                sentence_split = _re.split(r'(?<=[।\.!\?])', clean_answer, maxsplit=1)
+                first_sentence = sentence_split[0].strip()
+                remainder = sentence_split[1].strip() if len(sentence_split) > 1 else ""
 
-            calls_table.put_item(Item={
-                "call_id": job_key,
-                "timestamp": 0,
-                "status": "done",
-                "answer": answer,
-                "audio_url": first_audio,
-                "rest_audio_url": rest_audio,
-                "lang": language,
-                "ttl": int(time.time()) + 300,
-            })
-            log_query(call_sid, speech_text, answer, language)
-            logger.info(f"Async job done for call={call_sid}")
+                first_audio = sarvam_tts(first_sentence, language, speaker=voice) or ""
+                rest_audio = ""
+                if remainder:
+                    rest_audio = sarvam_tts(remainder, language, speaker=voice) or ""
+
+                calls_table.put_item(Item={
+                    "call_id": job_key,
+                    "timestamp": 0,
+                    "status": "done",
+                    "answer": clean_answer,
+                    "audio_url": first_audio,
+                    "rest_audio_url": rest_audio,
+                    "lang": language,
+                    "ttl": int(time.time()) + 300,
+                })
+                log_query(call_sid, speech_text, clean_answer, language)
+                logger.info(f"Fast path done for call={call_sid}")
+            else:
+                # ── Data needed — serve acknowledgment, then fetch ──
+                ack_audio = sarvam_tts(clean_answer, language, speaker=voice) or ""
+                calls_table.put_item(Item={
+                    "call_id": job_key,
+                    "timestamp": 0,
+                    "status": "partial",
+                    "answer": clean_answer,
+                    "audio_url": ack_audio,
+                    "lang": language,
+                    "ttl": int(time.time()) + 300,
+                })
+                logger.info(f"Partial (ack) served for call={call_sid}, fetching data...")
+
+                # ── Phase 2: Fetch RAG + data.gov in parallel ──
+                def _fetch_rag_context():
+                    use_rag = should_use_rag(speech_text)
+                    if not use_rag:
+                        return ""
+                    embedding = get_embedding(speech_text)
+                    return retrieve_context(embedding, language)
+
+                def _fetch_live_data():
+                    if not DATA_GOV_API_KEY:
+                        return ""
+                    return _fetch_data_gov(speech_text)
+
+                with ThreadPoolExecutor(max_workers=2) as executor:
+                    fut_rag  = executor.submit(_fetch_rag_context)
+                    fut_live = executor.submit(_fetch_live_data)
+                    rag_context = fut_rag.result()
+                    live_data   = fut_live.result()
+
+                context = rag_context
+                if live_data:
+                    context = f"{context}\n\n--- Live Government Data (data.gov.in) ---\n{live_data}"
+
+                # Phase 2 LLM: now with full context
+                data_answer = ask_llm(speech_text, context, language, history,
+                                      profile_context=profile_context,
+                                      system_prompt=call_system_prompt)
+                # Strip any accidental [FETCH_DATA] from Phase 2
+                data_answer = data_answer.replace("[FETCH_DATA]", "").strip()
+
+                import re as _re
+                sentence_split = _re.split(r'(?<=[।\.!\?])', data_answer, maxsplit=1)
+                first_sentence = sentence_split[0].strip()
+                remainder = sentence_split[1].strip() if len(sentence_split) > 1 else ""
+
+                first_audio = sarvam_tts(first_sentence, language, speaker=voice) or ""
+                rest_audio = ""
+                if remainder:
+                    rest_audio = sarvam_tts(remainder, language, speaker=voice) or ""
+
+                calls_table.put_item(Item={
+                    "call_id": job_key,
+                    "timestamp": 0,
+                    "status": "done",
+                    "answer": data_answer,
+                    "audio_url": first_audio,
+                    "rest_audio_url": rest_audio,
+                    "lang": language,
+                    "ttl": int(time.time()) + 300,
+                })
+                log_query(call_sid, speech_text, data_answer, language)
+                logger.info(f"Data path done for call={call_sid}")
 
             # Update cross-call memory (fire-and-forget)
             if phone_hash:
@@ -1987,37 +2033,12 @@ def handle_gather(params):
 
     threading.Thread(target=_process_async, daemon=True).start()
 
-    # ── Thinking filler + redirect to poll ─────────────────────────
+    # ── Brief pause then poll (no filler — Phase 1 LLM answers fast) ──
     cfg      = LANG_CONFIG.get(language, LANG_CONFIG["en"])
     poll_url = f"{BASE_URL}/voice/poll?lang={language}&voice={voice}&agent={current_agent}" if BASE_URL else f"/voice/poll?lang={language}&voice={voice}&agent={current_agent}"
 
-    # Instant voice filler via Polly (built into Twilio, ~0ms latency)
-    # Makes 8-10s processing feel much shorter
-    filler_phrases = {
-        "arya": {
-            "hi": "हम्म, देखती हूँ",
-            "mr": "हम्म, बघते",
-            "ta": "ம்ம், பார்க்கிறேன்",
-            "en": "Hmm, let me check",
-        },
-        "hitesh": {
-            "hi": "हम्म, देखता हूँ",
-            "mr": "हम्म, बघतो",
-            "ta": "ம்ம், பார்க்கிறேன்",
-            "en": "Hmm, let me see",
-        },
-        "vidya": {
-            "hi": "हम्म, देखती हूँ",
-            "mr": "हम्म, बघते",
-            "ta": "ம்ம், பார்க்கிறேன்",
-            "en": "Hmm, let me look into that",
-        },
-    }
-    agent_fillers = filler_phrases.get(current_agent, filler_phrases["arya"])
-    filler_text = agent_fillers.get(language, agent_fillers["hi"])
-
     response = VoiceResponse()
-    response.say(filler_text, voice=cfg["polly_voice"])
+    response.pause(length=1)
     response.redirect(poll_url, method="POST")
     return twiml_response(response)
 
@@ -2067,7 +2088,7 @@ def handle_poll(params):
     while time.time() < deadline:
         try:
             item = calls_table.get_item(Key={"call_id": job_key, "timestamp": 0}).get("Item")
-            if item and item.get("status") in ("done", "error"):
+            if item and item.get("status") in ("done", "error", "partial"):
                 result = item
                 break
         except Exception as e:
@@ -2101,14 +2122,13 @@ def handle_poll(params):
             response.say(goodbyes.get(language, goodbyes["en"]), voice=cfg["polly_voice"])
         return twiml_response(response)
 
-    # Clean up job record (fire-and-forget)
-    threading.Thread(
-        target=lambda: calls_table.delete_item(Key={"call_id": job_key, "timestamp": 0}),
-        daemon=True,
-    ).start()
-
     # ── Error result ────────────────────────────────────────────────
     if result.get("status") == "error":
+        # Clean up job record
+        threading.Thread(
+            target=lambda: calls_table.delete_item(Key={"call_id": job_key, "timestamp": 0}),
+            daemon=True,
+        ).start()
         gather = Gather(
             input="speech", action=gather_url, method="POST",
             language=cfg["twilio_speech_lang"], speech_timeout="auto", timeout=15,
@@ -2118,7 +2138,30 @@ def handle_poll(params):
         response.say(goodbyes.get(language, goodbyes["en"]), voice=cfg["polly_voice"])
         return twiml_response(response)
 
+    # ── Partial result (Phase 1 ack — play it, then keep polling for data) ──
+    if result.get("status") == "partial":
+        ack_audio = result.get("audio_url", "")
+        if ack_audio:
+            response.play(ack_audio)
+        else:
+            ack_text = result.get("answer", "")
+            if ack_text:
+                response.say(ack_text, voice=cfg["polly_voice"])
+        # Redirect to poll again for the full "done" result
+        next_poll = (
+            f"{BASE_URL}/voice/poll?lang={language}&attempt=0&voice={voice}&agent={current_agent}"
+            if BASE_URL else f"/voice/poll?lang={language}&attempt=0&voice={voice}&agent={current_agent}"
+        )
+        response.redirect(next_poll, method="POST")
+        return twiml_response(response)
+
     # ── Success — play answer + prompt for next question ───────────
+    # Clean up job record (fire-and-forget)
+    threading.Thread(
+        target=lambda: calls_table.delete_item(Key={"call_id": job_key, "timestamp": 0}),
+        daemon=True,
+    ).start()
+
     answer    = result.get("answer", "")
     # Truncate long responses — phone calls need brevity
     if len(answer) > 500:
