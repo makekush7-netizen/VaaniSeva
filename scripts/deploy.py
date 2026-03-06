@@ -53,10 +53,13 @@ def create_lambda_role():
 
 def package_lambda():
     """Zip Lambda code + dependencies."""
+    import tempfile
     print("Packaging Lambda...")
-    pkg_dir = "build/lambda_package"
-    # Remove only lambda_package to avoid OneDrive locking the zip/build root
-    shutil.rmtree(pkg_dir, ignore_errors=True)
+
+    # Use system temp dir to avoid OneDrive locking files during sync
+    tmp_root = tempfile.mkdtemp(prefix="vaaniseva_lambda_")
+    pkg_dir  = os.path.join(tmp_root, "lambda_package")
+    zip_path = os.path.join(tmp_root, "call_handler.zip")
     os.makedirs(pkg_dir, exist_ok=True)
 
     # Install binary deps with Linux-compatible wheels (Lambda runs on Amazon Linux)
@@ -70,8 +73,11 @@ def package_lambda():
     if os.path.exists("lambdas/call_handler/connect_handler.py"):
         shutil.copy("lambdas/call_handler/connect_handler.py", f"{pkg_dir}/connect_handler.py")
 
+    # Verify requests is present before zipping
+    if not os.path.exists(os.path.join(pkg_dir, "requests")):
+        raise RuntimeError("pip install failed — 'requests' not found in package dir. Check pip output above.")
+
     # Zip it
-    zip_path = "build/call_handler.zip"
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         for root, _, files in os.walk(pkg_dir):
             for file in files:
@@ -79,7 +85,8 @@ def package_lambda():
                 arcname  = os.path.relpath(filepath, pkg_dir)
                 zf.write(filepath, arcname)
 
-    print(f"  ✓ Packaged: {zip_path}")
+    file_count = sum(len(f) for _, _, f in os.walk(pkg_dir))
+    print(f"  ✓ Packaged: {zip_path} ({file_count} files)")
     return zip_path
 
 
