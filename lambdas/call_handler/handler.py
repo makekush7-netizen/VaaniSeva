@@ -129,7 +129,7 @@ AGENT_REGISTRY = {
         "sarvam_speaker": "arya",
         "gender": "female",
         "domain": "schemes, legal rights, government benefits, general knowledge",
-        "personality": """You are Arya, a warm and friendly girl who works at VaaniSeva. You can help with government schemes, legal rights, benefits — but also general questions, daily life advice, or just a friendly chat. You speak like a caring older sister — relaxed, natural, never robotic. You never use numbered lists. You speak one idea at a time in short sentences. If someone tells you their name, you remember it and use it naturally. If someone asks about your developers or how to improve you, respond enthusiastically and give honest, helpful suggestions. You are NOT just a scheme-bot — you are a helpful friend.""",
+        "personality": """You are Arya, a warm and friendly person who works at VaaniSeva. You can help with government schemes, legal rights, benefits — but also general questions, daily life advice, or just a friendly chat. You are relaxed, natural, and never robotic. You never use numbered lists. You speak one idea at a time in short sentences. If someone tells you their name, you remember it and use it naturally. If someone asks about your developers or how to improve you, respond enthusiastically and give honest, helpful suggestions. You are NOT just a scheme-bot — you are a helpful friend.""",
         "greeting_hi": "हाँ बोलिए, मैं आर्या हूँ। आज मैं आपकी किस बात में मदद कर सकती हूँ?",
         "greeting_mr": "बोला, मी आर्या आहे. आज मी तुम्हाला कशात मदत करू?",
         "greeting_ta": "சொல்லுங்க, நான் ஆர்யா. இன்னைக்கு உங்களுக்கு என்ன உதவி செய்யட்டும்?",
@@ -141,7 +141,7 @@ AGENT_REGISTRY = {
         "sarvam_speaker": "hitesh",
         "gender": "male",
         "domain": "agriculture, mandi prices, crop insurance, farming",
-        "personality": """You are Hitesh, a warm and practical dude at VaaniSeva who grew up in a farming family and knows agriculture inside out. You speak like an elder brother — direct, caring, never condescending. You know live mandi prices, crop insurance, soil health, government farming schemes, and general knowledge too. You use simple rural vocabulary naturally. You never use numbered lists. You speak one point at a time. If someone tells you their name, you use it warmly. When you get live market price data, present it conversationally — don't just read numbers.""",
+        "personality": """You are Hitesh, a warm and practical person at VaaniSeva who grew up in a farming family and knows agriculture inside out. You are direct, caring, and never condescending. You know live mandi prices, crop insurance, soil health, government farming schemes, and general knowledge too. You use simple rural vocabulary naturally. You never use numbered lists. You speak one point at a time. If someone tells you their name, you use it warmly. When you get live market price data, present it conversationally — don't just read numbers.""",
         "greeting_hi": "अरे भाई, बोलो। मैं हितेश हूँ, खेती-बाड़ी और मंडी भाव की बात हो तो बेझिझक पूछो।",
         "greeting_mr": "बोला भाऊ, मी हितेश. शेती किंवा बाजारभावाबद्दल काहीही विचारा.",
         "greeting_ta": "சொல்லுங்க, நான் ஹிதேஷ். விவசாயம் அல்லது சந்தை விலை பத்தி கேளுங்க.",
@@ -1795,6 +1795,43 @@ def handle_gather(params):
         response.hangup()
         return twiml_response(response)
 
+    # ── Mid-call language switch ────────────────────────────────
+    lang_switch_map = {
+        "hindi": "hi", "हिंदी": "hi", "हिन्दी": "hi",
+        "english": "en", "अंग्रेजी": "en", "इंग्लिश": "en",
+        "marathi": "mr", "मराठी": "mr",
+        "tamil": "ta", "तमिल": "ta", "தமிழ்": "ta",
+    }
+    lang_switch_triggers = ["talk in", "speak in", "switch to", "change to",
+                            "baat karo", "बात करो", "bol", "बोल",
+                            "bhasha", "भाषा", "language"]
+    if speech_text:
+        text_lower = speech_text.lower()
+        if any(t in text_lower for t in lang_switch_triggers):
+            new_lang = None
+            for trigger_word, lang_code in lang_switch_map.items():
+                if trigger_word in text_lower:
+                    new_lang = lang_code
+                    break
+            if new_lang and new_lang != language:
+                language = new_lang
+                cfg = LANG_CONFIG.get(language, LANG_CONFIG["en"])
+                switch_confirms = {
+                    "hi": "ठीक है, अब मैं हिंदी में बात करूँगी।",
+                    "mr": "ठीक आहे, आता मी मराठीत बोलतो.",
+                    "ta": "சரி, இனிமேல் தமிழில் பேசுகிறேன்.",
+                    "en": "Sure, I'll speak in English now.",
+                }
+                gather_url = f"{BASE_URL}/voice/gather?lang={language}&voice={voice}&agent={current_agent}" if BASE_URL else f"/voice/gather?lang={language}&voice={voice}&agent={current_agent}"
+                response = VoiceResponse()
+                gather = Gather(
+                    input="speech", action=gather_url, method="POST",
+                    language=cfg["twilio_speech_lang"], speech_timeout="auto", timeout=15,
+                )
+                tts_say(gather, switch_confirms.get(language, switch_confirms["en"]), language, speaker=voice)
+                response.append(gather)
+                return twiml_response(response)
+
     # Mid-call voice switch: user says "change voice" / "आवाज़ बदलो" etc.
     change_triggers = ["change voice", "change my voice", "different voice",
                        "आवाज़ बदलो", "आवाज बदलो", "दूसरी आवाज़",
@@ -2287,8 +2324,8 @@ def _fetch_data_gov(query: str) -> str:
 
             # Extract state from query
             state_map = {
-                "mp": "Madhya Pradesh", "madhya pradesh": "Madhya Pradesh", "मध्य प्रदेश": "Madhya Pradesh",
-                "up": "Uttar Pradesh", "uttar pradesh": "Uttar Pradesh", "उत्तर प्रदेश": "Uttar Pradesh",
+                "madhyapradesh": "Madhya Pradesh", "mp": "Madhya Pradesh", "madhya pradesh": "Madhya Pradesh", "मध्य प्रदेश": "Madhya Pradesh",
+                "uttarpradesh": "Uttar Pradesh", "up": "Uttar Pradesh", "uttar pradesh": "Uttar Pradesh", "उत्तर प्रदेश": "Uttar Pradesh",
                 "rajasthan": "Rajasthan", "राजस्थान": "Rajasthan",
                 "bihar": "Bihar", "बिहार": "Bihar",
                 "maharashtra": "Maharashtra", "महाराष्ट्र": "Maharashtra",
@@ -2344,8 +2381,10 @@ def _fetch_data_gov(query: str) -> str:
                         results.append("LIVE MANDI PRICES:\n" + "\n".join(price_lines))
                 else:
                     results.append("No mandi price data found for this query. The data might not be available for the requested commodity or state right now.")
-            else:
+            elif resp:
                 logger.warning(f"Mandi API returned status {resp.status_code}")
+            else:
+                logger.warning("Mandi API: both retry attempts timed out")
         except Exception as e:
             logger.warning(f"Mandi price fetch failed: {e}")
 
