@@ -1936,15 +1936,30 @@ def handle_gather(params):
                              profile_context=profile_context,
                              system_prompt=call_system_prompt)
 
-            # ── Phase 3: TTS ──
-            audio_url = sarvam_tts(answer, language, speaker=voice) or ""
+            # ── Phase 3: Sentence-split TTS ──
+            # Split answer into first sentence + remainder.
+            # TTS & store first sentence immediately so poll picks it up fast,
+            # then TTS the rest as follow-up audio.
+            import re as _re
+            sentence_split = _re.split(r'(?<=[।\.!\?])', answer, maxsplit=1)
+            first_sentence = sentence_split[0].strip()
+            remainder = sentence_split[1].strip() if len(sentence_split) > 1 else ""
+
+            # TTS first sentence immediately
+            first_audio = sarvam_tts(first_sentence, language, speaker=voice) or ""
+
+            # TTS remainder in parallel (if any)
+            rest_audio = ""
+            if remainder:
+                rest_audio = sarvam_tts(remainder, language, speaker=voice) or ""
 
             calls_table.put_item(Item={
                 "call_id": job_key,
                 "timestamp": 0,
                 "status": "done",
                 "answer": answer,
-                "audio_url": audio_url,
+                "audio_url": first_audio,
+                "rest_audio_url": rest_audio,
                 "lang": language,
                 "ttl": int(time.time()) + 300,
             })
@@ -1972,12 +1987,37 @@ def handle_gather(params):
 
     threading.Thread(target=_process_async, daemon=True).start()
 
-    # ── Brief pause instead of spoken filler ──────────────────────────
+    # ── Thinking filler + redirect to poll ─────────────────────────
     cfg      = LANG_CONFIG.get(language, LANG_CONFIG["en"])
     poll_url = f"{BASE_URL}/voice/poll?lang={language}&voice={voice}&agent={current_agent}" if BASE_URL else f"/voice/poll?lang={language}&voice={voice}&agent={current_agent}"
 
+    # Instant voice filler via Polly (built into Twilio, ~0ms latency)
+    # Makes 8-10s processing feel much shorter
+    filler_phrases = {
+        "arya": {
+            "hi": "हम्म, देखती हूँ",
+            "mr": "हम्म, बघते",
+            "ta": "ம்ம், பார்க்கிறேன்",
+            "en": "Hmm, let me check",
+        },
+        "hitesh": {
+            "hi": "हम्म, देखता हूँ",
+            "mr": "हम्म, बघतो",
+            "ta": "ம்ம், பார்க்கிறேன்",
+            "en": "Hmm, let me see",
+        },
+        "vidya": {
+            "hi": "हम्म, देखती हूँ",
+            "mr": "हम्म, बघते",
+            "ta": "ம்ம், பார்க்கிறேன்",
+            "en": "Hmm, let me look into that",
+        },
+    }
+    agent_fillers = filler_phrases.get(current_agent, filler_phrases["arya"])
+    filler_text = agent_fillers.get(language, agent_fillers["hi"])
+
     response = VoiceResponse()
-    response.pause(length=1)
+    response.say(filler_text, voice=cfg["polly_voice"])
     response.redirect(poll_url, method="POST")
     return twiml_response(response)
 
@@ -2089,12 +2129,16 @@ def handle_poll(params):
     follow_up = follow_ups.get(language, follow_ups["en"])
     goodbye   = goodbyes.get(language, goodbyes["en"])
 
+    rest_audio_url = result.get("rest_audio_url", "")
+
     gather = Gather(
         input="speech", action=gather_url, method="POST",
         language=cfg["twilio_speech_lang"], speech_timeout="auto", timeout=15,
     )
     if audio_url:
         gather.play(audio_url)
+        if rest_audio_url:
+            gather.play(rest_audio_url)
         tts_say(gather, follow_up, language, speaker=stored_voice)
     else:
         # Sarvam TTS unavailable — retry once, then fall back to Polly
