@@ -17,6 +17,7 @@ import hashlib
 import hmac
 import time
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import boto3
 import requests
 from twilio.twiml.voice_response import VoiceResponse, Gather
@@ -1808,15 +1809,27 @@ def handle_gather(params):
             text_lower = speech_text.lower()
             explicitly_named = any(t in text_lower for t in name_triggers.get(requested_agent, []))
             if explicitly_named:
+                # Play transfer announcement in CURRENT agent's voice
+                old_agent_cfg = AGENT_REGISTRY.get(current_agent, AGENT_REGISTRY[DEFAULT_AGENT])
+                old_voice = old_agent_cfg["sarvam_speaker"]
+                transfer_msgs = {
+                    "hi": f"ठीक है, मैं आपको {AGENT_REGISTRY[requested_agent]['name_hi']} से जोड़ रही हूँ। एक सेकंड।",
+                    "mr": f"ठीक आहे, मी तुम्हाला {AGENT_REGISTRY[requested_agent]['name']} शी जोडतो. एक क्षण.",
+                    "ta": f"சரி, உங்களை {AGENT_REGISTRY[requested_agent]['name']} கிட்ட இணைக்கிறேன். ஒரு நிமிஷம்.",
+                    "en": f"Sure, let me connect you to {AGENT_REGISTRY[requested_agent]['name']}. One moment.",
+                }
                 current_agent = requested_agent
                 agent_cfg = AGENT_REGISTRY[current_agent]
                 greeting_key = f"greeting_{language}"
                 switch_msg = agent_cfg.get(greeting_key, agent_cfg["greeting_hi"])
-                # Use agent's voice for TTS
                 agent_voice = agent_cfg["sarvam_speaker"]
                 cfg = LANG_CONFIG.get(language, LANG_CONFIG["en"])
                 gather_url = f"{BASE_URL}/voice/gather?lang={language}&voice={agent_voice}&agent={current_agent}" if BASE_URL else f"/voice/gather?lang={language}&voice={agent_voice}&agent={current_agent}"
                 response = VoiceResponse()
+                # Transfer announcement in old agent's voice
+                tts_say(response, transfer_msgs.get(language, transfer_msgs["hi"]), language, speaker=old_voice)
+                response.pause(length=1)
+                # New agent greeting in new agent's voice
                 gather = Gather(
                     input="speech", action=gather_url, method="POST",
                     language=cfg["twilio_speech_lang"], speech_timeout="auto", timeout=15,
@@ -1852,31 +1865,78 @@ def handle_gather(params):
             cross_call_context = ""
             from_number = ""
             phone_hash = ""
-            try:
-                ts = get_call_timestamp(call_sid)
-                call_item = calls_table.get_item(Key={"call_id": call_sid, "timestamp": ts}).get("Item", {})
-                from_number = call_item.get("from_number", "")
-                user_id = call_item.get("user_id", "")
-                if user_id:
-                    user_result = users_table.get_item(Key={"user_id": user_id})
-                    caller = user_result.get("Item")
-                    if caller:
-                        profile_context = _build_profile_context(caller)
-                # Load cross-call context from phone_profiles
-                if from_number and from_number != "unknown":
-                    phone_hash = _hash_phone(from_number)
-                    phone_prof = _get_phone_profile(from_number)
-                    if phone_prof and phone_prof.get("last_topic"):
-                        cross_call_context = phone_prof["last_topic"]
-            except Exception as pe:
-                logger.warning(f"Profile lookup for call {call_sid}: {pe}")
+
+            # ── Phase 1: Parallel fetch — profile, RAG, live data, history ──
+            use_rag = should_use_rag(speech_text)
+
+            def _fetch_profile():
+                """Fetch caller profile and cross-call context."""
+                _prof = ""
+                _cross = ""
+                _from = ""
+                _phash = ""
+                try:
+                    ts = get_call_timestamp(call_sid)
+                    call_item = calls_table.get_item(Key={"call_id": call_sid, "timestamp": ts}).get("Item", {})
+                    _from = call_item.get("from_number", "")
+                    user_id = call_item.get("user_id", "")
+                    if user_id:
+                        user_result = users_table.get_item(Key={"user_id": user_id})
+                        caller = user_result.get("Item")
+                        if caller:
+                            _prof = _build_profile_context(caller)
+                    if _from and _from != "unknown":
+                        _phash = _hash_phone(_from)
+                        phone_prof = _get_phone_profile(_from)
+                        if phone_prof and phone_prof.get("last_topic"):
+                            _cross = phone_prof["last_topic"]
+                except Exception as pe:
+                    logger.warning(f"Profile lookup for call {call_sid}: {pe}")
+                return _prof, _cross, _from, _phash
+
+            def _fetch_rag_context():
+                """Run embedding + vector search (only if RAG is needed)."""
+                if not use_rag:
+                    return ""
+                embedding = get_embedding(speech_text)
+                return retrieve_context(embedding, language)
+
+            def _fetch_live_data():
+                """Fetch live mandi/scheme data from data.gov.in."""
+                if not DATA_GOV_API_KEY:
+                    return ""
+                return _fetch_data_gov(speech_text)
+
+            def _fetch_history():
+                """Fetch conversation history for this call."""
+                return get_conversation_history(call_sid) if call_sid else []
+
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                fut_profile = executor.submit(_fetch_profile)
+                fut_rag     = executor.submit(_fetch_rag_context)
+                fut_live    = executor.submit(_fetch_live_data)
+                fut_hist    = executor.submit(_fetch_history)
+
+                profile_context, cross_call_context, from_number, phone_hash = fut_profile.result()
+                rag_context = fut_rag.result()
+                live_data   = fut_live.result()
+                history     = fut_hist.result()
+
+            # ── Phase 2: Combine context → LLM ──
+            context = rag_context
+            if live_data:
+                context = f"{context}\n\n--- Live Government Data (data.gov.in) ---\n{live_data}"
 
             call_system_prompt = build_system_prompt(
                 current_agent, language,
                 user_name=None,
                 cross_call_context=cross_call_context
             )
-            answer    = rag_pipeline(speech_text, language, call_sid, profile_context=profile_context, system_prompt=call_system_prompt)
+            answer = ask_llm(speech_text, context, language, history,
+                             profile_context=profile_context,
+                             system_prompt=call_system_prompt)
+
+            # ── Phase 3: TTS ──
             audio_url = sarvam_tts(answer, language, speaker=voice) or ""
 
             calls_table.put_item(Item={
@@ -1894,7 +1954,6 @@ def handle_gather(params):
             # Update cross-call memory (fire-and-forget)
             if phone_hash:
                 try:
-                    history = get_conversation_history(call_sid)
                     summarize_and_store_call(phone_hash, history, language, current_agent)
                 except Exception:
                     pass
@@ -2106,14 +2165,12 @@ def _fetch_data_gov(query: str) -> str:
     query_lower = query.lower()
     if any(kw in query_lower for kw in mandi_keywords):
         try:
-            # Agmarknet daily commodity prices
-            # Resource: https://data.gov.in/resource/current-daily-price-various-commodities-various-centres-mandis
             mandi_params = {
                 "api-key": DATA_GOV_API_KEY,
                 "format": "json",
                 "limit": 5,
             }
-            # Try to extract commodity from query for filtering
+            # Extract commodity from query
             commodity_map = {
                 "tomato": "Tomato", "tamatar": "Tomato", "टमाटर": "Tomato",
                 "onion": "Onion", "pyaaz": "Onion", "प्याज": "Onion",
@@ -2122,16 +2179,46 @@ def _fetch_data_gov(query: str) -> str:
                 "rice": "Rice", "chawal": "Rice", "चावल": "Rice",
                 "apple": "Apple", "seb": "Apple", "सेब": "Apple",
                 "banana": "Banana", "kela": "Banana", "केला": "Banana",
+                "dal": "Masur Dal", "दाल": "Masur Dal",
+                "sugar": "Sugar", "cheeni": "Sugar", "चीनी": "Sugar",
+                "soyabean": "Soyabean", "soybean": "Soyabean", "सोयाबीन": "Soyabean",
             }
             for keyword, commodity in commodity_map.items():
                 if keyword in query_lower:
                     mandi_params["filters[commodity]"] = commodity
                     break
 
+            # Extract state from query
+            state_map = {
+                "mp": "Madhya Pradesh", "madhya pradesh": "Madhya Pradesh", "मध्य प्रदेश": "Madhya Pradesh",
+                "up": "Uttar Pradesh", "uttar pradesh": "Uttar Pradesh", "उत्तर प्रदेश": "Uttar Pradesh",
+                "rajasthan": "Rajasthan", "राजस्थान": "Rajasthan",
+                "bihar": "Bihar", "बिहार": "Bihar",
+                "maharashtra": "Maharashtra", "महाराष्ट्र": "Maharashtra",
+                "punjab": "Punjab", "पंजाब": "Punjab",
+                "haryana": "Haryana", "हरियाणा": "Haryana",
+                "gujarat": "Gujarat", "गुजरात": "Gujarat",
+                "karnataka": "Karnataka", "कर्नाटक": "Karnataka",
+                "tamil nadu": "Tamil Nadu", "तमिलनाडु": "Tamil Nadu",
+                "andhra pradesh": "Andhra Pradesh", "आंध्र प्रदेश": "Andhra Pradesh",
+                "telangana": "Telangana", "तेलंगाना": "Telangana",
+                "west bengal": "West Bengal", "पश्चिम बंगाल": "West Bengal",
+                "odisha": "Odisha", "ओडिशा": "Odisha",
+                "chhattisgarh": "Chhattisgarh", "छत्तीसगढ़": "Chhattisgarh",
+                "jharkhand": "Jharkhand", "झारखंड": "Jharkhand",
+                "assam": "Assam", "असम": "Assam",
+                "kerala": "Kerala", "केरल": "Kerala",
+                "goa": "Goa", "गोवा": "Goa",
+            }
+            for keyword, state_name in state_map.items():
+                if keyword in query_lower:
+                    mandi_params["filters[state]"] = state_name
+                    break
+
             resp = requests.get(
                 "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070",
                 params=mandi_params,
-                timeout=5,
+                timeout=4,
             )
             if resp.status_code == 200:
                 data = resp.json()
@@ -2150,36 +2237,12 @@ def _fetch_data_gov(query: str) -> str:
                             )
                     if price_lines:
                         results.append("LIVE MANDI PRICES:\n" + "\n".join(price_lines))
+                else:
+                    results.append("No mandi price data found for this query. The data might not be available for the requested commodity or state right now.")
+            else:
+                logger.warning(f"Mandi API returned status {resp.status_code}")
         except Exception as e:
             logger.warning(f"Mandi price fetch failed: {e}")
-
-    # ── 2. Scheme queries → government scheme catalog ──
-    if not results:
-        try:
-            scheme_params = {
-                "api-key": DATA_GOV_API_KEY,
-                "format": "json",
-                "filters[search]": query[:100],
-                "limit": 3,
-            }
-            resp = requests.get(
-                "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070",
-                params=scheme_params,
-                timeout=5,
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                records = data.get("records", [])
-                for rec in records[:3]:
-                    title = rec.get("scheme_name") or rec.get("title") or ""
-                    desc = rec.get("description") or rec.get("scheme_description") or ""
-                    if title:
-                        entry = title
-                        if desc:
-                            entry += f": {desc[:200]}"
-                        results.append(entry)
-        except Exception as e:
-            logger.warning(f"data.gov.in scheme fetch failed: {e}")
 
     return "\n".join(results)
 
