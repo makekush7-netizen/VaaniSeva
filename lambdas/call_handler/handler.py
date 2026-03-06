@@ -324,16 +324,19 @@ def handle_call_initiate(event):
             method="POST",
         )
 
-        # Log callback
-        calls_table.put_item(Item={
-            "call_id": f"cb-{uuid.uuid4()}",
-            "timestamp": int(datetime.now().timestamp()),
-            "from_number": phone_number,
-            "status": "web-callback",
-            "language": "hi",
-            "queries_count": 0,
-            "conversation_history": [],
-        })
+        # Log callback — wrapped separately so a DynamoDB failure doesn't fail the call
+        try:
+            calls_table.put_item(Item={
+                "call_id": f"cb-{uuid.uuid4()}",
+                "timestamp": int(datetime.now().timestamp()),
+                "from_number": phone_number,
+                "status": "web-callback",
+                "language": "hi",
+                "queries_count": 0,
+                "conversation_history": [],
+            })
+        except Exception as db_err:
+            logger.warning(f"Call log write failed (non-fatal): {db_err}")
 
         return cors_json_response(200, {
             "status": "calling",
