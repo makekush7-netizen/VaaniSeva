@@ -129,7 +129,7 @@ AGENT_REGISTRY = {
         "sarvam_speaker": "arya",
         "gender": "female",
         "domain": "schemes, legal rights, government benefits, general knowledge",
-        "personality": """You are Arya, a warm and friendly girl who works at VaaniSeva. You can help with government schemes, legal rights, benefits — but also general questions, daily life advice, or just a friendly chat. You speak like a caring older sister — relaxed, natural, never robotic. You never use numbered lists. You speak one idea at a time in short sentences. If someone tells you their name, you remember it and use it naturally. If someone asks about your developers or how to improve you, respond enthusiastically and give honest, helpful suggestions. You are NOT just a scheme-bot — you are a helpful friend.""",
+        "personality": """You are Arya, a warm and friendly person who works at VaaniSeva. You can help with government schemes, legal rights, benefits — but also general questions, daily life advice, or just a friendly chat. You are relaxed, natural, and never robotic. You never use numbered lists. You speak one idea at a time in short sentences. If someone tells you their name, you remember it and use it naturally. If someone asks about your developers or how to improve you, respond enthusiastically and give honest, helpful suggestions. You are NOT just a scheme-bot — you are a helpful friend.""",
         "greeting_hi": "हाँ बोलिए, मैं आर्या हूँ। आज मैं आपकी किस बात में मदद कर सकती हूँ?",
         "greeting_mr": "बोला, मी आर्या आहे. आज मी तुम्हाला कशात मदत करू?",
         "greeting_ta": "சொல்லுங்க, நான் ஆர்யா. இன்னைக்கு உங்களுக்கு என்ன உதவி செய்யட்டும்?",
@@ -141,7 +141,7 @@ AGENT_REGISTRY = {
         "sarvam_speaker": "hitesh",
         "gender": "male",
         "domain": "agriculture, mandi prices, crop insurance, farming",
-        "personality": """You are Hitesh, a warm and practical dude at VaaniSeva who grew up in a farming family and knows agriculture inside out. You speak like an elder brother — direct, caring, never condescending. You know live mandi prices, crop insurance, soil health, government farming schemes, and general knowledge too. You use simple rural vocabulary naturally. You never use numbered lists. You speak one point at a time. If someone tells you their name, you use it warmly. When you get live market price data, present it conversationally — don't just read numbers.""",
+        "personality": """You are Hitesh, a warm and practical person at VaaniSeva who grew up in a farming family and knows agriculture inside out. You are direct, caring, and never condescending. You know live mandi prices, crop insurance, soil health, government farming schemes, and general knowledge too. You use simple rural vocabulary naturally. You never use numbered lists. You speak one point at a time. If someone tells you their name, you use it warmly. When you get live market price data, present it conversationally — don't just read numbers.""",
         "greeting_hi": "अरे भाई, बोलो। मैं हितेश हूँ, खेती-बाड़ी और मंडी भाव की बात हो तो बेझिझक पूछो।",
         "greeting_mr": "बोला भाऊ, मी हितेश. शेती किंवा बाजारभावाबद्दल काहीही विचारा.",
         "greeting_ta": "சொல்லுங்க, நான் ஹிதேஷ். விவசாயம் அல்லது சந்தை விலை பத்தி கேளுங்க.",
@@ -198,7 +198,9 @@ DATA ACCESS:
 You have access to a knowledge base with detailed government scheme information and a live mandi price API.
 - If you can answer confidently from your own knowledge (greetings, general chat, basic info, math, stories), just answer directly.
 - If the question needs SPECIFIC scheme details, exact eligibility rules, live mandi prices, or verified government data that you are not 100% sure about, add the tag [FETCH_DATA] at the very end of your response. Your response before [FETCH_DATA] should be a natural, brief acknowledgment like you would say before looking something up. Do NOT say generic filler like 'ek pal rukiye'. Be specific about what you are checking.
-- NEVER add [FETCH_DATA] for greetings, your name, casual conversation, general knowledge, jokes, math, or anything you already know."""
+- NEVER add [FETCH_DATA] for greetings, your name, casual conversation, general knowledge, jokes, math, or anything you already know.
+- ALWAYS add [FETCH_DATA] when the user asks for mandi prices, commodity rates, or any live market data — you cannot know current prices without checking.
+- NEVER say 'as I told you before' or 'as I mentioned' unless the conversation history explicitly shows you gave that information."""
 
     if user_name:
         base += f"\nThe caller's name is {user_name}. Address them by name occasionally but naturally."
@@ -1793,6 +1795,43 @@ def handle_gather(params):
         response.hangup()
         return twiml_response(response)
 
+    # ── Mid-call language switch ────────────────────────────────
+    lang_switch_map = {
+        "hindi": "hi", "हिंदी": "hi", "हिन्दी": "hi",
+        "english": "en", "अंग्रेजी": "en", "इंग्लिश": "en",
+        "marathi": "mr", "मराठी": "mr",
+        "tamil": "ta", "तमिल": "ta", "தமிழ்": "ta",
+    }
+    lang_switch_triggers = ["talk in", "speak in", "switch to", "change to",
+                            "baat karo", "बात करो", "bol", "बोल",
+                            "bhasha", "भाषा", "language"]
+    if speech_text:
+        text_lower = speech_text.lower()
+        if any(t in text_lower for t in lang_switch_triggers):
+            new_lang = None
+            for trigger_word, lang_code in lang_switch_map.items():
+                if trigger_word in text_lower:
+                    new_lang = lang_code
+                    break
+            if new_lang and new_lang != language:
+                language = new_lang
+                cfg = LANG_CONFIG.get(language, LANG_CONFIG["en"])
+                switch_confirms = {
+                    "hi": "ठीक है, अब मैं हिंदी में बात करूँगी।",
+                    "mr": "ठीक आहे, आता मी मराठीत बोलतो.",
+                    "ta": "சரி, இனிமேல் தமிழில் பேசுகிறேன்.",
+                    "en": "Sure, I'll speak in English now.",
+                }
+                gather_url = f"{BASE_URL}/voice/gather?lang={language}&voice={voice}&agent={current_agent}" if BASE_URL else f"/voice/gather?lang={language}&voice={voice}&agent={current_agent}"
+                response = VoiceResponse()
+                gather = Gather(
+                    input="speech", action=gather_url, method="POST",
+                    language=cfg["twilio_speech_lang"], speech_timeout="auto", timeout=15,
+                )
+                tts_say(gather, switch_confirms.get(language, switch_confirms["en"]), language, speaker=voice)
+                response.append(gather)
+                return twiml_response(response)
+
     # Mid-call voice switch: user says "change voice" / "आवाज़ बदलो" etc.
     change_triggers = ["change voice", "change my voice", "different voice",
                        "आवाज़ बदलो", "आवाज बदलो", "दूसरी आवाज़",
@@ -1982,10 +2021,17 @@ def handle_gather(params):
                 if live_data:
                     context = f"{context}\n\n--- Live Government Data (data.gov.in) ---\n{live_data}"
 
+                # Phase 2 system prompt: tell LLM to use the fetched data directly
+                phase2_prompt = call_system_prompt.split("DATA ACCESS:")[0].strip()
+                if context.strip():
+                    phase2_prompt += "\n\nIMPORTANT: The data below has already been fetched for you. Answer the user's question directly using actual numbers and details from the data. Do NOT say you are checking or looking up anything."
+                else:
+                    phase2_prompt += "\n\nIMPORTANT: No data was found. Tell the user honestly that data is not available right now."
+
                 # Phase 2 LLM: now with full context
                 data_answer = ask_llm(speech_text, context, language, history,
                                       profile_context=profile_context,
-                                      system_prompt=call_system_prompt)
+                                      system_prompt=phase2_prompt)
                 # Strip any accidental [FETCH_DATA] from Phase 2
                 data_answer = data_answer.replace("[FETCH_DATA]", "").strip()
 
@@ -2281,8 +2327,8 @@ def _fetch_data_gov(query: str) -> str:
 
             # Extract state from query
             state_map = {
-                "mp": "Madhya Pradesh", "madhya pradesh": "Madhya Pradesh", "मध्य प्रदेश": "Madhya Pradesh",
-                "up": "Uttar Pradesh", "uttar pradesh": "Uttar Pradesh", "उत्तर प्रदेश": "Uttar Pradesh",
+                "madhyapradesh": "Madhya Pradesh", "mp": "Madhya Pradesh", "madhya pradesh": "Madhya Pradesh", "मध्य प्रदेश": "Madhya Pradesh",
+                "uttarpradesh": "Uttar Pradesh", "up": "Uttar Pradesh", "uttar pradesh": "Uttar Pradesh", "उत्तर प्रदेश": "Uttar Pradesh",
                 "rajasthan": "Rajasthan", "राजस्थान": "Rajasthan",
                 "bihar": "Bihar", "बिहार": "Bihar",
                 "maharashtra": "Maharashtra", "महाराष्ट्र": "Maharashtra",
@@ -2306,12 +2352,20 @@ def _fetch_data_gov(query: str) -> str:
                     mandi_params["filters[state]"] = state_name
                     break
 
-            resp = requests.get(
-                "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070",
-                params=mandi_params,
-                timeout=4,
-            )
-            if resp.status_code == 200:
+            resp = None
+            for _attempt in range(2):
+                try:
+                    resp = requests.get(
+                        "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070",
+                        params=mandi_params,
+                        timeout=5,
+                    )
+                    if resp.status_code == 200:
+                        break
+                except requests.exceptions.Timeout:
+                    logger.warning(f"Mandi API timeout (attempt {_attempt + 1}/2)")
+                    resp = None
+            if resp and resp.status_code == 200:
                 data = resp.json()
                 records = data.get("records", [])
                 if records:
@@ -2330,8 +2384,10 @@ def _fetch_data_gov(query: str) -> str:
                         results.append("LIVE MANDI PRICES:\n" + "\n".join(price_lines))
                 else:
                     results.append("No mandi price data found for this query. The data might not be available for the requested commodity or state right now.")
-            else:
+            elif resp:
                 logger.warning(f"Mandi API returned status {resp.status_code}")
+            else:
+                logger.warning("Mandi API: all attempts failed")
         except Exception as e:
             logger.warning(f"Mandi price fetch failed: {e}")
 
