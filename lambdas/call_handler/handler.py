@@ -1966,24 +1966,81 @@ def handle_gather(params):
                 cross_call_context=cross_call_context
             )
 
-            quick_answer = ask_llm(speech_text, "", language, history,
-                                   profile_context=profile_context,
-                                   system_prompt=call_system_prompt)
+            # ── Phase 1: Streaming LLM with first-sentence TTS overlap ──
+            _first_tts_future = None
+            _first_sent = None
+            _tts_pool = ThreadPoolExecutor(max_workers=2)
+            try:
+                _lang_map = {
+                    "hi": "LANGUAGE: Hindi ONLY. हिंदी देवनागरी लिपि में जवाब दो। कोई अंग्रेजी/रोमन अक्षर नहीं। सिर्फ proper nouns (PM-Kisan, Ayushman Bharat) अंग्रेजी में रख सकती हो।",
+                    "mr": "LANGUAGE: Marathi ONLY. उत्तर फक्त मराठी लिपीत द्या. हिंदी मिसळू नका. फक्त proper nouns (PM-Kisan, Ayushman Bharat) इंग्रजीत ठेवा.",
+                    "ta": "LANGUAGE: Tamil ONLY. பதிலை முழுவதுமாக தமிழில் கொடுங்கள். ஆங்கிலம் வேண்டாம். proper nouns (PM-Kisan, Ayushman Bharat) மட்டும் ஆங்கிலத்தில்.",
+                    "en": "LANGUAGE: English ONLY. Respond in simple, clear English. No Hindi or other scripts.",
+                }
+                _li = _lang_map.get(language, _lang_map["en"])
+                _ps = f"\n\n{profile_context}\n" if profile_context else ""
+                _umsg = f"[{_li}]\n{_ps}\nRelevant context from our knowledge base (use if helpful, ignore if not relevant):\n\nUser: {speech_text}"
+
+                _msgs = []
+                for _t in (history or [])[-10:]:
+                    if _t.get("query"):
+                        _msgs.append({"role": "user", "content": [{"text": _t["query"]}]})
+                    if _t.get("answer"):
+                        _msgs.append({"role": "assistant", "content": [{"text": _t["answer"]}]})
+                _msgs.append({"role": "user", "content": [{"text": _umsg}]})
+
+                _sys = call_system_prompt or build_system_prompt(DEFAULT_AGENT, language)
+                _stream = bedrock.converse_stream(
+                    modelId=BEDROCK_MODEL_ID,
+                    system=[{"text": _sys}],
+                    messages=_msgs,
+                    inferenceConfig={"maxTokens": 300, "temperature": 0.7}
+                )
+
+                _buf = ""
+                for _ev in _stream.get("stream", []):
+                    if "contentBlockDelta" in _ev:
+                        _buf += _ev["contentBlockDelta"].get("delta", {}).get("text", "")
+                        if _first_sent is None:
+                            _m = re.search(r'[।\.!\?]', _buf)
+                            if _m:
+                                _first_sent = _buf[:_m.end()].strip()
+                                if "[FETCH_DATA]" not in _first_sent:
+                                    _first_tts_future = _tts_pool.submit(
+                                        sarvam_tts, _first_sent, language, voice)
+                                    logger.info(f"Stream overlap: TTS fired at {len(_buf)} chars")
+
+                quick_answer = _buf.strip()
+                if _first_sent is None:
+                    _first_sent = quick_answer
+                logger.info(f"Streamed LLM for call={call_sid}, len={len(quick_answer)}")
+            except Exception as _serr:
+                logger.warning(f"Streaming failed, falling back: {_serr}")
+                quick_answer = ask_llm(speech_text, "", language, history,
+                                       profile_context=profile_context,
+                                       system_prompt=call_system_prompt)
+                _first_sent = None
 
             needs_data = "[FETCH_DATA]" in quick_answer
             clean_answer = quick_answer.replace("[FETCH_DATA]", "").strip()
 
             if not needs_data:
-                # ── Simple query — TTS and done (fast path ~5-6s) ──
-                import re as _re
-                sentence_split = _re.split(r'(?<=[।\.!\?])', clean_answer, maxsplit=1)
-                first_sentence = sentence_split[0].strip()
-                remainder = sentence_split[1].strip() if len(sentence_split) > 1 else ""
+                # ── Fast path with streaming TTS overlap ──
+                if _first_tts_future:
+                    first_audio = _first_tts_future.result(timeout=10) or ""
+                    _fs_clean = _first_sent.replace("[FETCH_DATA]", "").strip()
+                    _idx = clean_answer.find(_fs_clean)
+                    remainder = clean_answer[_idx + len(_fs_clean):].strip() if _idx >= 0 else ""
+                else:
+                    _split = re.split(r'(?<=[।\.!\?])', clean_answer, maxsplit=1)
+                    _fs_clean = _split[0].strip()
+                    remainder = _split[1].strip() if len(_split) > 1 else ""
+                    first_audio = sarvam_tts(_fs_clean, language, speaker=voice) or ""
 
-                first_audio = sarvam_tts(first_sentence, language, speaker=voice) or ""
                 rest_audio = ""
                 if remainder:
                     rest_audio = sarvam_tts(remainder, language, speaker=voice) or ""
+                _tts_pool.shutdown(wait=False)
 
                 calls_table.put_item(Item={
                     "call_id": job_key,
@@ -1999,7 +2056,11 @@ def handle_gather(params):
                 logger.info(f"Fast path done for call={call_sid}")
             else:
                 # ── Data needed — serve acknowledgment, then fetch ──
-                ack_audio = sarvam_tts(clean_answer, language, speaker=voice) or ""
+                if _first_tts_future:
+                    ack_audio = _first_tts_future.result(timeout=10) or ""
+                else:
+                    ack_audio = sarvam_tts(clean_answer, language, speaker=voice) or ""
+                _tts_pool.shutdown(wait=False)
                 calls_table.put_item(Item={
                     "call_id": job_key,
                     "timestamp": 0,
@@ -2092,12 +2153,11 @@ def handle_gather(params):
 
     threading.Thread(target=_process_async, daemon=True).start()
 
-    # ── Brief pause then poll (no filler — Phase 1 LLM answers fast) ──
+    # ── Redirect to poll immediately (streaming LLM + TTS overlap handles latency) ──
     cfg      = LANG_CONFIG.get(language, LANG_CONFIG["en"])
     poll_url = f"{BASE_URL}/voice/poll?lang={language}&voice={voice}&agent={current_agent}" if BASE_URL else f"/voice/poll?lang={language}&voice={voice}&agent={current_agent}"
 
     response = VoiceResponse()
-    response.pause(length=1)
     response.redirect(poll_url, method="POST")
     return twiml_response(response)
 
@@ -2142,7 +2202,7 @@ def handle_poll(params):
     gather_url = f"{BASE_URL}/voice/gather?lang={language}&voice={voice}&agent={current_agent}" if BASE_URL else f"/voice/gather?lang={language}&voice={voice}&agent={current_agent}"
     response   = VoiceResponse()
 
-    # Poll DynamoDB every ~1.5 s for up to 10 s
+    # Poll DynamoDB every ~0.75 s for up to 10 s (faster polling = lower latency)
     # If partial was already played, only wait for done/error
     acceptable = ("done", "error") if partial_played else ("done", "error", "partial")
     result   = None
@@ -2155,7 +2215,7 @@ def handle_poll(params):
                 break
         except Exception as e:
             logger.warning(f"Poll DynamoDB error: {e}")
-        time.sleep(1.5)
+        time.sleep(0.75)
 
     # ── Still processing after 10 s? ───────────────────────────────
     if result is None:
