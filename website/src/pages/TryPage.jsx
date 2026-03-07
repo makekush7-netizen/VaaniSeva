@@ -13,13 +13,6 @@ export function CallMeBack({ compact = false }) {
   const [phone, setPhone] = useState('')
   const [status, setStatus] = useState('idle') // idle | sending | success | error
   const [errorMsg, setErrorMsg] = useState('')
-  const [voice, setVoice] = useState('arya')
-
-  const callbackVoices = [
-    { code: 'arya',   label: 'Arya',   icon: '👩', hint: 'Female · Hindi' },
-    { code: 'vidya',  label: 'Vidya',  icon: '👩', hint: 'Female · EN' },
-    { code: 'hitesh', label: 'Hitesh', icon: '👨', hint: 'Male · Hindi' },
-  ]
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -39,7 +32,7 @@ export function CallMeBack({ compact = false }) {
       const res = await fetch(`${API_BASE}/call/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone_number: fullNumber, voice }),
+        body: JSON.stringify({ phone_number: fullNumber }),
       })
 
       const data = await res.json()
@@ -110,30 +103,6 @@ export function CallMeBack({ compact = false }) {
         </div>
       </div>
 
-      {/* Voice Picker */}
-      <div>
-        <label className="block text-sm font-medium text-content-primary mb-1.5">
-          Preferred Voice <span className="text-content-secondary text-xs">— आवाज़ चुनें</span>
-        </label>
-        <div className="flex gap-2">
-          {callbackVoices.map(v => (
-            <button
-              key={v.code}
-              type="button"
-              onClick={() => setVoice(v.code)}
-              className={`flex-1 flex flex-col items-center py-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                voice === v.code
-                  ? 'border-amber-400 bg-amber-50 text-amber-700 shadow-sm'
-                  : 'border-gray-200 bg-gray-50 text-gray-500 hover:border-amber-300 hover:text-amber-600'
-              }`}
-            >
-              <span>{v.icon} {v.label}</span>
-              <span className="text-[9px] font-normal opacity-60 mt-0.5">{v.hint}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Error */}
       {(status === 'error' || errorMsg) && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
@@ -156,7 +125,11 @@ export function CallMeBack({ compact = false }) {
       {/* Disclaimer */}
       <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
         <p className="text-xs text-amber-700 leading-relaxed">
-          <em>VaaniSeva is in the trial phase of AI for Bharat Hackathon 2026. We're provisioning an Indian toll-free number — until then, our system will call you from a US number (+1 978 830 9619). Standard international call rates may apply. The call is completely free on our side.</em>
+          <strong>Why a US number?</strong> VaaniSeva is in the trial phase for AI for Bharat Hackathon 2026.
+          We are provisioning an Indian toll-free number — until it is active, calls are placed from our US Twilio
+          number (+1 978 830 9619). <strong>The call is completely free on our end.</strong> Standard carrier rates
+          may apply on your end for international calls. You can also use the Live Call tab above to talk directly
+          from your browser — no phone needed.
         </p>
       </div>
     </form>
@@ -263,7 +236,7 @@ function VoiceChat() {
 
   const voices = [
     { code: 'arya',   label: 'Arya',   icon: '👩', hint: 'Female · Hindi' },
-    { code: 'vidya',  label: 'Vidya',  icon: '👩', hint: 'Female · EN' },
+    { code: 'vidya',  label: 'Vidya',  icon: '👩', hint: 'Female · Health' },
     { code: 'hitesh', label: 'Hitesh', icon: '👨', hint: 'Male · Hindi' },
   ]
 
@@ -490,7 +463,7 @@ function VoiceChat() {
       </div>
 
       {/* Voice Selector */}
-      <div className="w-full max-w-sm mb-6">
+      <div className="w-full max-w-sm mb-3">
         <p className="text-[10px] text-gray-400 text-center mb-1.5 tracking-wide uppercase">Choose Voice</p>
         <div className="flex bg-gray-100 rounded-2xl p-1">
           {voices.map(v => (
@@ -781,8 +754,8 @@ export default function TryPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="max-w-4xl mx-auto px-6 md:px-12 py-10">
-        <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm ${tab === 'voice' ? 'p-6 md:p-10' : 'p-8 md:p-12'}`}>
+      <div className="max-w-4xl mx-auto px-6 md:px-12 py-4 md:py-8">
+        <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-y-auto ${tab === 'voice' ? 'p-4 md:p-8' : 'p-8 md:p-12'}`}>
           {tab === 'voice' ? <VoiceChat /> : <CallMeBack />}
         </div>
       </div>

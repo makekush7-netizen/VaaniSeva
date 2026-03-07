@@ -56,6 +56,7 @@ export default function VaaniWidget({ apiBaseUrl } = {}) {
 
   const messagesEndRef = useRef(null)
   const recognitionRef = useRef(null)
+  const sessionIdRef = useRef(crypto.randomUUID())
 
   // ── Load chat history ─────────────────────────────
   useEffect(() => {
@@ -120,14 +121,14 @@ export default function VaaniWidget({ apiBaseUrl } = {}) {
     window.dispatchEvent(new CustomEvent('aura:setAnimation', { detail: 'thinking' }))
 
     try {
-      const res = await fetch(`${base}/web/chat`, {
+      const res = await fetch(`${base}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg })
+        body: JSON.stringify({ query: userMsg, language: 'hi', session_id: sessionIdRef.current })
       })
       const data = await res.json()
 
-      let finalText = data.text || data.message || 'Sorry, something went wrong.'
+      let finalText = data.answer || 'Sorry, something went wrong.'
 
       // Parse emotion tag
       const emotionMatch = finalText.match(/\[EMOTION:\s*(\w+)\]/i)
@@ -154,7 +155,7 @@ export default function VaaniWidget({ apiBaseUrl } = {}) {
         .replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').trim()
 
       if (cleanTTS.length > 0) {
-        speakResponse(cleanTTS, finalText)
+        speakResponse(cleanTTS, finalText, data.audio_url)
       } else {
         setMessages((prev) => [...prev, { role: 'assistant', content: finalText || '😊' }])
         setIsTyping(false)
@@ -168,14 +169,11 @@ export default function VaaniWidget({ apiBaseUrl } = {}) {
   }
 
   // ── TTS + Lip Sync Pipeline ───────────────────────
-  const speakResponse = async (text, displayText) => {
+  const speakResponse = async (text, displayText, audioUrl) => {
     setIsTyping(false)
     try {
-      const res = await fetch(`${base}/web/tts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, lang: 'hi' })
-      })
+      if (!audioUrl) throw new Error('No audio URL')
+      const res = await fetch(audioUrl)
 
       if (res.ok) {
         const arrayBuffer = await res.arrayBuffer()

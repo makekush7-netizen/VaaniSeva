@@ -108,9 +108,9 @@ export default function Home() {
                 className="text-base md:text-lg font-medium leading-relaxed mb-6"
                 style={{ color: 'rgba(255,255,255,0.72)' }}
               >
-                440 million Indians have no access to AI.
+                Hundreds of millions of Indians have no smartphone, no internet, no access to digital services.
                 <br />
-                VaaniSeva changes that — one phone call at a time.
+                VaaniSeva changes that — one voice call at a time.
               </p>
 
               {/* Language ticker */}
@@ -156,7 +156,7 @@ export default function Home() {
               {/* CTAs */}
               <div className="flex flex-wrap items-center gap-3 mb-5">
                 <a
-                  href="tel:+12602048966"
+                  href="tel:+19788309619"
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-white text-[15px] active:scale-[0.98] transition-all duration-200"
                   style={{ background: '#D4860B', boxShadow: '0 4px 20px rgba(212,134,11,0.40)' }}
                 >
@@ -174,7 +174,7 @@ export default function Home() {
               </div>
 
               <p className="text-xs" style={{ color: 'rgba(255,255,255,0.32)' }}>
-                No smartphone needed &nbsp;\u00b7&nbsp; No internet required &nbsp;\u00b7&nbsp; Works on \u20b9500 phones
+                No smartphone needed &nbsp;·&nbsp; No internet required &nbsp;·&nbsp; Works on ₹500 phones
               </p>
 
             </div>
@@ -276,8 +276,8 @@ export default function Home() {
             One Call. Any Language. Real Answers.
           </h2>
           <p className="text-lg text-white/75 mb-8 max-w-lg mx-auto">
-            Join 10,000+ Indians already using VaaniSeva.
-            No signup needed — just call.
+            Built for the AI for Bharat Hackathon 2026.
+            No signup needed — just call us now.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <a href="tel:+19788309619" className="inline-flex items-center gap-2 px-8 py-4 font-bold rounded-xl text-lg text-white transition-colors shadow-lg hover:opacity-90" style={{ background: '#D4860B' }}>
@@ -336,7 +336,7 @@ export default function Home() {
               </div>
               <p className="text-sm text-content-secondary leading-relaxed">
                 Built by Team Prayas for AI for Bharat Hackathon 2026.
-                VaaniSeva is the Voice-First AI for the other 90% of India.
+                VaaniSeva is a Voice-First AI helpline built to serve rural and underserved India — accessible from any basic phone, in any language.
               </p>
             </div>
             <div>
