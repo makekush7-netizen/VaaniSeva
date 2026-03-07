@@ -16,7 +16,7 @@ import * as THREE from 'three'
  * Ready Player Me / Mixamo .glb that has standard morph targets.
  */
 export default function AvatarModel({
-  modelUrl = '/models/vaani.glb',
+  modelUrl = '/models/vaani.glb?v=2',
   scale = 1,
   position = [0, 0, 0],
   mini = false,
@@ -317,4 +317,4 @@ export default function AvatarModel({
   return <primitive object={scene} scale={scale} position={adjustedPosition} />
 }
 
-useGLTF.preload('/models/vaani.glb')
+useGLTF.preload('/models/vaani.glb?v=2')

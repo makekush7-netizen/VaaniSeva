@@ -267,7 +267,7 @@ export default function VaaniWidget({ apiBaseUrl } = {}) {
               <directionalLight position={[2, 2, 2]} />
               <ErrorBoundary>
                 <Suspense fallback={null}>
-                  <AvatarModel modelUrl="/models/vaani.glb" mini={true} showWaistUp />
+                  <AvatarModel modelUrl="/models/vaani.glb?v=2" mini={true} showWaistUp />
                 </Suspense>
               </ErrorBoundary>
             </Canvas>
@@ -315,7 +315,7 @@ export default function VaaniWidget({ apiBaseUrl } = {}) {
                   />
                   <ErrorBoundary>
                     <Suspense fallback={null}>
-                      <AvatarModel modelUrl="/models/vaani.glb" showWaistUp />
+                      <AvatarModel modelUrl="/models/vaani.glb?v=2" showWaistUp />
                     </Suspense>
                   </ErrorBoundary>
                 </Canvas>
