@@ -118,13 +118,6 @@ export default function Pricing() {
             </div>
           ))}
         </div>
-
-        <div className="text-center mt-12 p-6 bg-white rounded-2xl border border-gray-100 shadow-sm max-w-2xl mx-auto">
-          <p className="text-sm text-content-secondary">
-            <strong>Hackathon Note:</strong> VaaniSeva is currently free for all users during the AI for Bharat Hackathon 2026 trial period.
-            Payment integration coming soon.
-          </p>
-        </div>
       </div>
     </div>
   )

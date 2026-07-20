@@ -156,7 +156,7 @@ export default function Home() {
               {/* CTAs */}
               <div className="flex flex-wrap items-center gap-3 mb-5">
                 <a
-                  href="tel:+19788309619"
+                  href={`tel:${import.meta.env.VITE_TWILIO_PHONE || '+16293173435'}`}
                   className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-white text-[15px] active:scale-[0.98] transition-all duration-200"
                   style={{ background: '#D4860B', boxShadow: '0 4px 20px rgba(212,134,11,0.40)' }}
                 >
@@ -276,7 +276,6 @@ export default function Home() {
             One Call. Any Language. Real Answers.
           </h2>
           <p className="text-lg text-white/75 mb-8 max-w-lg mx-auto">
-            Built for the AI for Bharat Hackathon 2026.
             No signup needed — just call us now.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
@@ -334,8 +333,7 @@ export default function Home() {
                   <span className="text-[10px] text-content-tertiary font-medium tracking-wider uppercase">Voice AI for India</span>
                 </div>
               </div>
-              <p className="text-sm text-content-secondary leading-relaxed">
-                Built by Team Prayas for AI for Bharat Hackathon 2026.
+              <p className="mt-4 text-sm text-content-secondary max-w-sm">
                 VaaniSeva is a Voice-First AI helpline built to serve rural and underserved India — accessible from any basic phone, in any language.
               </p>
             </div>
@@ -349,14 +347,13 @@ export default function Home() {
             </div>
             <div>
               <h4 className="font-semibold text-sm text-content-primary mb-3">About</h4>
-              <p className="text-sm text-content-secondary leading-relaxed">
-                Built by <strong>Team Prayas</strong> for the <strong>AI for Bharat Hackathon 2026</strong>.
+              <p className="text-sm text-content-secondary mt-4">
+                Voice AI for Rural India.
               </p>
-              <p className="text-sm text-content-secondary mt-2">Problem Statement 3 — Voice AI for Rural India</p>
             </div>
           </div>
           <div className="mt-10 pt-6 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-content-tertiary">© 2026 VaaniSeva — Team Prayas. All rights reserved.</p>
+            <p className="text-xs text-content-tertiary">© 2026 VaaniSeva. All rights reserved.</p>
             <span className="text-xs text-content-tertiary">Powered by AWS Bedrock + Sarvam AI + Twilio</span>
           </div>
         </div>
