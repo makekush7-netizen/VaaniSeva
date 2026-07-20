@@ -161,7 +161,7 @@ export default function Home() {
                   style={{ background: '#D4860B', boxShadow: '0 4px 20px rgba(212,134,11,0.40)' }}
                 >
                   <Phone size={17} />
-                  Call Now — +1 978 830 9619
+                  Call Now — {import.meta.env.VITE_TWILIO_PHONE || '+1 629 317 3435'}
                 </a>
                 <Link
                   to="/try"
@@ -280,9 +280,9 @@ export default function Home() {
             No signup needed — just call us now.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <a href="tel:+19788309619" className="inline-flex items-center gap-2 px-8 py-4 font-bold rounded-xl text-lg text-white transition-colors shadow-lg hover:opacity-90" style={{ background: '#D4860B' }}>
+            <a href={`tel:${import.meta.env.VITE_TWILIO_PHONE || '+16293173435'}`} className="inline-flex items-center gap-2 px-8 py-4 font-bold rounded-xl text-lg text-white transition-colors shadow-lg hover:opacity-90" style={{ background: '#D4860B' }}>
               <Phone size={22} />
-              +1 978 830 9619
+              {import.meta.env.VITE_TWILIO_PHONE || '+1 629 317 3435'}
             </a>
             <Link to="/try" className="inline-flex items-center gap-2 px-8 py-4 text-white font-bold rounded-xl text-lg hover:bg-white/10 transition-colors" style={{ border: '2px solid #D4860B' }}>
               Try on Web

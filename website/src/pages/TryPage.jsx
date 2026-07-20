@@ -127,7 +127,7 @@ export function CallMeBack({ compact = false }) {
         <p className="text-xs text-amber-700 leading-relaxed">
           <strong>Why a US number?</strong> VaaniSeva is in the trial phase for AI for Bharat Hackathon 2026.
           We are provisioning an Indian toll-free number — until it is active, calls are placed from our US Twilio
-          number (+1 978 830 9619). <strong>The call is completely free on our end.</strong> Standard carrier rates
+          number ({import.meta.env.VITE_TWILIO_PHONE || '+1 629 317 3435'}). <strong>The call is completely free on our end.</strong> Standard carrier rates
           may apply on your end for international calls. You can also use the Live Call tab above to talk directly
           from your browser — no phone needed.
         </p>
