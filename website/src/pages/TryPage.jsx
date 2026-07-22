@@ -569,7 +569,7 @@ function VoiceChat() {
                 {error === 'daily_limit_exceeded' ? (
                   <>
                     <p className="text-red-400 text-sm font-medium text-center px-2">Daily call limit reached</p>
-                    <p className="text-gray-500 text-xs mt-1 px-2">3 sessions used · Resets midnight UTC</p>
+                    <p className="text-gray-500 text-xs mt-1 px-2">20 sessions used · Resets midnight UTC</p>
                   </>
                 ) : (
                   <>
