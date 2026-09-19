@@ -4,6 +4,8 @@
 
 VaaniSeva is a voice-based AI platform designed to bridge India's digital divide by providing multilingual, accessible digital services to 500M+ Indians who are excluded from smartphone-based services.
 
+**Website:** https://www.vaaniseva.me/
+
 ---
 
 ## 🎯 Problem Statement
@@ -336,7 +338,7 @@ For inquiries, partnerships, or demo requests:
 
 - **Email:** [makewatch7@gmail.com]
 - **Demo Line:** 7415074741
-- **Website:** [vaaniseva.app]
+- **Website:** [https://www.vaaniseva.me/](https://www.vaaniseva.me/)
 
 ---
 
